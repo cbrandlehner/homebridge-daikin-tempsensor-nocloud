@@ -2,7 +2,6 @@
 let Service;
 let Characteristic;
 const superagent = require('superagent');
-const Throttle = require('superagent-throttle');
 const Cache = require('./cache');
 const Queue = require('./queue');
 const packageFile = require('./package.json');
@@ -12,13 +11,6 @@ function Daikin(log, config) {
 
   this.cache = new Cache();
   this.queue = new Queue();
-
-  this.throttle = new Throttle({
-    active: true, // set false to pause queue
-    rate: 1, // how many requests can be sent every `ratePer`
-    ratePer: 500, // number of ms in which `rate` requests may be sent
-    concurrent: 1 // how many requests can be sent concurrently
-  });
 
   if (config.name === undefined) {
     this.log.error('ERROR: your configuration is missing the parameter "name"');
@@ -187,7 +179,7 @@ Daikin.prototype = {
         response: this.response, // Wait 5 (default) seconds for the server to start sending,
         deadline: this.deadline // but allow 10 (default) seconds for the request to finish loading.
       })
-      .use(this.throttle.plugin())
+      // .use(this.throttle.plugin())
       .set('User-Agent', 'superagent')
       .set('Host', this.apiIP);
     if (this.uuid !== '') {

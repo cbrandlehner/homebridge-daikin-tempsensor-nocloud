@@ -49,7 +49,7 @@ Configuration sample:
 
 This screenshot shows the configuration in [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x#readme):
 
-<img src="https://user-images.githubusercontent.com/10800971/80524996-daf4e580-8990-11ea-9e13-3328a65f20af.png" align="center" alt="configuration" width="50%" height="50%">
+<img src="https://user-images.githubusercontent.com/10800971/104128327-4b993200-5367-11eb-9ee2-70cd2fb4311f.png" align="center" alt="configuration" width="50%" height="50%">
 
 
 

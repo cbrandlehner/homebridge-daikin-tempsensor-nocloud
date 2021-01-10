@@ -1,0 +1,59 @@
+{
+  "pluginAlias": "Daikin-Temperature",
+  "pluginType": "accessory",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "required": true,
+        "default": "Outside Temperature"
+      },
+      "apiroute": {
+        "title": "URI of the WIFI controller.",
+        "description": "Should be in the format of: http://aaa.bbb.ccc.ddd",
+        "type": "string",
+        "required": true,
+        "default": "http://192.168.1.33",
+        "format": "uri"
+      },
+      "uuid": {
+        "title": "Client UUID token. Only needed for some models.",
+        "description": "Should be a 32 digit hex string",
+        "type": "string",
+        "required": false
+      },
+      "system": {
+        "type": "string",
+        "title": "Daikin default or Skyfi",
+        "enum": [ "Default", "Skyfi" ],
+        "default": "Default"
+      },
+      "response": {
+        "title": "Response",
+	      "description": "Timeout in milliseconds for the device to start responding.  Default: 2000 (2 seconds).",
+        "type": "integer",
+        "default": 2000,
+        "minimum": 2000,
+        "maximum": 8000
+      },
+      "deadline": {
+        "title": "Deadline",
+	      "description": "Timeout in milliseconds for the device to complete a response.  Default: 60000 (one minute).",
+        "type": "integer",
+        "default": 60000,
+        "minimum": 10000,
+        "maximum": 60000
+      },
+      "retries": {
+        "title": "Retries",
+	      "description": "The plugin can retry to reconnect in case of a connection problem. Default: 5.",
+        "type": "integer",
+        "default": 5,
+        "minimum": 0,
+        "maximum": 10
+      }
+    }
+  }
+}

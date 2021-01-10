@@ -1,0 +1,94 @@
+{
+  "name": "homebridge-daikin-tempsensor-nocloud",
+  "version": "2021.2.2",
+  "description": "Provides temperature sensor for HomeKit as plugin for homebridge: https://github.com/nfarina/homebridge",
+  "license": "MIT",
+  "keywords": [
+    "homebridge-plugin",
+    "daikin"
+  ],
+  "engines": {
+    "node": ">=12.16.1",
+    "homebridge": ">=1.0.0"
+  },
+  "author": "Christian Brandlehner",
+  "contributors": [
+    "Pierre-Julien Cazaux",
+    "greensouth",
+    "Fred de Gier",
+    "Fabian Leutgeb"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud.git"
+  },
+  "dependencies": {
+    "superagent": ">=6.1.0",
+    "superagent-throttle": ">=1.0.1"
+  },
+  "bugs": {
+    "url": "https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/issues"
+  },
+  "homepage": "https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud#readme",
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/cbrandlehner"
+    },
+    {
+      "type": "paypal",
+      "url": "https://paypal.me/CBrandlehner"
+    }
+  ],
+  "main": "index.js",
+  "scripts": {
+    "pretest": "eslint --ignore-path .gitignore package.json config.schema.json sample-config.json",
+    "test": "xo"
+  },
+  "devDependencies": {
+    "eslint": ">=7.17.0",
+    "eslint-plugin-json": ">=2.1.2",
+    "xo": ">=0.37.1",
+    "minimist": ">=1.2.5",
+    "yargs-parser": ">=20.2.4"
+  },
+  "xo": {
+    "space": false,
+    "rules": {
+      "camelcase": "off",
+      "no-mixed-spaces-and-tabs": "warn",
+      "no-useless-escape": "warn",
+      "indent": "off",
+      "quotes": "warn",
+      "capitalized-comments": "off",
+      "no-var": "warn",
+      "prefer-destructuring": "off",
+      "prefer-arrow-callback": "warn",
+      "object-shorthand": [
+        "off",
+        "always",
+        {
+          "ignoreConstructors": true
+        }
+      ],
+      "quote-props": "error",
+      "no-unused-vars": "warn",
+      "curly": [
+        "error",
+        "multi-or-nest",
+        "consistent"
+      ],
+      "no-use-before-define": [
+        "error",
+        {
+          "classes": false
+        }
+      ],
+      "complexity": [
+        "error",
+        25
+      ],
+      "unicorn/prefer-ternary": "off"
+    }
+  }
+}

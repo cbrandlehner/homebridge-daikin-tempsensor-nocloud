@@ -8,7 +8,6 @@ const packageFile = require('./package.json');
 
 function Daikin(log, config) {
   this.log = log;
-
   this.cache = new Cache();
   this.queue = new Queue();
 
@@ -244,7 +243,7 @@ Daikin.prototype = {
         },
 
   getCurrentOutsideTemperature(callback) {
-                this.log.warn('getCurrentOutsideTemperature using %s', this.get_sensor_info);
+                this.log.debug('getCurrentOutsideTemperature using %s', this.get_sensor_info);
                 this.sendGetRequest(this.get_sensor_info, body => {
                         const responseValues = this.parseResponse(body);
                         const currentOutsideTemperature = Number.parseFloat(responseValues.otemp);

@@ -2,8 +2,8 @@
 let Service;
 let Characteristic;
 const superagent = require('superagent');
-const Cache = require('./cache');
-const Queue = require('./queue');
+const Cache = require('./cache.js');
+const Queue = require('./queue.js');
 const packageFile = require('./package.json');
 
 function Daikin(log, config) {

@@ -21,7 +21,7 @@ Cache.prototype.set = function (key, value) {
   this.entries[key] = {
     key,
     value,
-    timestamp
+    timestamp,
   };
 };
 

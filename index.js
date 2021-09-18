@@ -41,7 +41,7 @@ function Daikin(log, config) {
 
   if (config.deadline === undefined) {
       this.log.warn('WARNING: your configuration is missing the parameter "deadline", using default');
-      this.deadline = 10000;
+      this.deadline = 10_000;
       this.log.debug('Config: deadline is %s', this.deadline);
     } else {
       this.log.debug('Config: deadline is %s', config.deadline);
@@ -176,7 +176,7 @@ Daikin.prototype = {
       .retry(this.retries) // retry 3 (default) times
       .timeout({
         response: this.response, // Wait 5 (default) seconds for the server to start sending,
-        deadline: this.deadline // but allow 10 (default) seconds for the request to finish loading.
+        deadline: this.deadline, // but allow 10 (default) seconds for the request to finish loading.
       })
       // .use(this.throttle.plugin())
       .set('User-Agent', 'superagent')
@@ -319,7 +319,7 @@ Daikin.prototype = {
         this.log.error('getModelInfo for basic info: Not connected to a supported Daikin wifi controller!');
         }
       });
-    }
+    },
   };
 
 module.exports = function (homebridge) {

@@ -19,6 +19,14 @@ function Daikin(log, config) {
     this.log.debug('Config: AC name is %s', config.name);
   }
 
+  if (config.outsidemode === undefined) {
+    this.log.error('ERROR: your configuration is missing the parameter "outsidemode"');
+    this.outsidemode = true; // which is the default of the plugin before introducing this option.
+  } else {
+    this.outsidemode = config.outsidemode;
+    this.log.debug('Config: Outsidemode is %s', config.outsidemode);
+  }
+
   if (config.apiroute === undefined) {
     this.log.error('ERROR: your configuration is missing the parameter "apiroute"');
     this.apiroute = 'http://192.168.1.88';
@@ -280,11 +288,19 @@ Daikin.prototype = {
 			.setCharacteristic(Characteristic.FirmwareRevision, this.firmwareRevision)
 			.setCharacteristic(Characteristic.SerialNumber, this.firmwareRevision);
 
-    this.temperatureService
-      .getCharacteristic(Characteristic.CurrentTemperature)
-      .setProps({minValue: Number.parseFloat('-50'),
-                 maxValue: Number.parseFloat('100')})
-      .on('get', this.getCurrentOutsideTemperature.bind(this));
+    if (this.outsidemode === true) {
+      this.temperatureService
+        .getCharacteristic(Characteristic.CurrentTemperature)
+        .setProps({minValue: Number.parseFloat('-50'),
+                   maxValue: Number.parseFloat('100')})
+        .on('get', this.getCurrentOutsideTemperature.bind(this));
+    } else {
+      this.temperatureService
+        .getCharacteristic(Characteristic.CurrentTemperature)
+        .setProps({minValue: Number.parseFloat('-50'),
+                   maxValue: Number.parseFloat('100')})
+        .on('get', this.getCurrentTemperature.bind(this));
+    }
 
     // let services;
     const services = [informationService, this.temperatureService];

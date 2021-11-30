@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-tempsensor-nocloud",
-  "version": "2021.38.1",
+  "version": "2021.49.1",
   "description": "Provides temperature sensor for HomeKit as plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
@@ -8,8 +8,8 @@
     "daikin"
   ],
   "engines": {
-    "node": ">=12.16.1",
-    "homebridge": ">=1.3.0"
+    "node": ">=12.22.7",
+    "homebridge": ">=1.3.8"
   },
   "author": "Christian Brandlehner",
   "contributors": [
@@ -47,7 +47,7 @@
   "devDependencies": {
     "eslint": ">=7.17.0",
     "eslint-plugin-json": ">=2.1.2",
-    "xo": "^0.44.0"
+    "xo": "^0.47.0"
   },
   "xo": {
     "space": false,

@@ -10,6 +10,11 @@
         "required": true,
         "default": "Outside Temperature"
       },
+      "outsidemode": {
+        "title": "Do you want to see the OUTSIDE temperature? If not, the plugin will provide INSIDE temperature.",
+        "description": "Can be set to true or false",
+        "type": "boolean"
+      },
       "apiroute": {
         "title": "URI of the WIFI controller.",
         "description": "Should be in the format of: http://aaa.bbb.ccc.ddd",

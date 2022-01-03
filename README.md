@@ -32,34 +32,11 @@ This plugin can be installed using the [Homebridge Config UI X](https://github.c
 
 # Configuration
 
-Configuration sample:
-
- ```
-    {
-        "bridge": {
-            ...
-        },
-
-        "description": "...",
-
-        "accessories": [
-            {
-                "accessory": "Daikin-Temperature",
-                "name": "West Wing",
-                "apiroute": "http://192.168.1.50",
-                "system": "Default",
-            }
-        ],
-
-        "platforms":[]
-    }
-```
-
 This screenshot shows the configuration in [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x#readme):
 
 <img src="https://user-images.githubusercontent.com/10800971/104128327-4b993200-5367-11eb-9ee2-70cd2fb4311f.png" align="center" alt="configuration" width="50%" height="50%">
 
-
+Users are advised to use the graphical configuration. In case you configure the setings manually, please make sure to check the file config.schema.json first to understand the settings and possible values.
 
 # Technical background information on the API being used
 

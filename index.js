@@ -145,7 +145,7 @@ Daikin.prototype = {
   },
 
   sendGetRequest(path, callback, options) {
-    this.log.debug('attempting request: path: %s', path);
+    this.log.debug('sendGetRequest: attempting request: path: %s', path);
 
     this._queueGetRequest(path, callback, options || {});
   },
@@ -156,7 +156,7 @@ Daikin.prototype = {
     this.log.debug(`queuing (${method}) request: path: %s`, path);
 
     this.queue[method](done => {
-      this.log.debug('executing queued request: path: %s', path);
+      this.log.debug('_queueGetRequest: executing queued request: path: %s', path);
 
         this._doSendGetRequest(path, (error, response) => {
           if (error) {
@@ -165,7 +165,7 @@ Daikin.prototype = {
             return;
           }
 
-          this.log.debug('queued request finished: path: %s', path);
+          this.log.debug('_queueGetRequest: queued request finished: path: %s', path);
 
           // actual response callback
           callback(response);
@@ -178,7 +178,7 @@ Daikin.prototype = {
     if (this._serveFromCache(path, callback, options))
       return;
 
-    this.log.debug('requesting from API: path: %s', path);
+    this.log.debug('_doSendGetRequest: requesting from API: path: %s', path);
     const request = superagent
       .get(path)
       .retry(this.retries) // retry 3 (default) times
@@ -186,7 +186,6 @@ Daikin.prototype = {
         response: this.response, // Wait 5 (default) seconds for the server to start sending,
         deadline: this.deadline, // but allow 10 (default) seconds for the request to finish loading.
       })
-      // .use(this.throttle.plugin())
       .set('User-Agent', 'superagent')
       .set('Host', this.apiIP);
     if (this.uuid !== '') {
@@ -197,45 +196,44 @@ Daikin.prototype = {
     request.end((error, response) => {
       if (error) {
         callback(error);
-        return this.log.error('ERROR: API request to %s returned error %s', path, error);
+        return this.log.error('_doSendGetRequest: ERROR: API request to %s returned error %s', path, error);
       }
 
-      this.log.debug('set cache: path: %s', path);
+      this.log.debug('_doSendGetRequest: This is the APIs response: %s', response.text);
+      this.log.debug('_doSendGetRequest: populating cache: path: %s', path);
       this.cache.set(path, response.text);
 
-      this.log.debug('responding from API: %s', response.text);
       callback(error, response.text);
-      // Calling the end function will send the request
     });
   },
 
   _serveFromCache(path, callback, options) {
-    this.log.debug('requesting from cache: path: %s', path);
+    this.log.debug('_serveFromCache: requesting from cache: path: %s', path);
 
     if (options.skipCache) {
-      this.log.debug('cache SKIP: path: %s', path);
+      this.log.debug('_serveFromCache: cache SKIP: path: %s', path);
       return false;
     }
 
     if (!this.cache.has(path)) {
-      this.log.debug('cache MISS: path: %s', path);
+      this.log.debug('_serveFromCache: cache MISS: path: %s', path);
       return false;
     }
 
     if (this.cache.expired(path)) {
-      this.log.debug('cache EXPIRED: path: %s', path);
+      this.log.debug('_serveFromCache: cache EXPIRED: path: %s', path);
       return false;
     }
 
     const cachedResponse = this.cache.get(path);
 
     if (cachedResponse === undefined) {
-      this.log.debug('cache EMPTY: path: %s', path);
+      this.log.debug('_serveFromCache: cache EMPTY: path: %s', path);
       return false;
     }
 
-    this.log.debug('cache HIT: path: %s', path);
-    this.log.debug('responding from cache: %s', cachedResponse);
+    this.log.debug('_serveFromCache: cache HIT: path: %s', path);
+    this.log.debug('_serveFromCache: responding from cache: %s', cachedResponse);
 
     callback(null, cachedResponse);
     return true;

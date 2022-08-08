@@ -7,7 +7,6 @@
 
 ![Node.js CI](https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/workflows/Node.js%20CI/badge.svg)
 ![CodeQL](https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/workflows/CodeQL/badge.svg)
-[![HCL AppScan CodeSweep](https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/actions/workflows/main.yml/badge.svg)](https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/actions/workflows/main.yml)
 # homebridge-daikin-tempsensor-nocloud
 
 Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/homebridge) by connecting to the optional [Daikin Wifi Controller](https://amzn.to/2MZDQjg) or by using the builtin wifi controller that comes with some models.

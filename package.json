@@ -47,7 +47,7 @@
   "devDependencies": {
     "eslint": "^8.22.0",
     "eslint-plugin-json": "^2.1.2",
-    "xo": "^0.51.0"
+    "xo": "^0.52.0"
   },
   "xo": {
     "space": false,

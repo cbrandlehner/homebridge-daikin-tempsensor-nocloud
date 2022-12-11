@@ -80,29 +80,29 @@ function Daikin(log, config) {
       this.uuid = config.uuid;
 
   switch (this.system) {
-    case 'Default':
+    case 'Default': {
       this.get_sensor_info = this.apiroute + '/aircon/get_sensor_info';
       this.get_control_info = this.apiroute + '/aircon/get_control_info';
       this.get_model_info = this.apiroute + '/aircon/get_model_info';
       this.set_control_info = this.apiroute + '/aircon/set_control_info';
       this.basic_info = this.apiroute + '/common/basic_info';
-      break;
+      break;}
 
-    case 'Skyfi':
+    case 'Skyfi': {
       this.get_sensor_info = this.apiroute + '/skyfi/aircon/get_sensor_info';
       this.get_control_info = this.apiroute + '/skyfi/aircon/get_control_info';
       this.get_model_info = this.apiroute + '/skyfi/aircon/get_model_info';
       this.set_control_info = this.apiroute + '/skyfi/aircon/set_control_info';
       this.basic_info = this.apiroute + '/skyfi/common/basic_info';
-      break;
+      break;}
 
-    default:
+    default: {
       this.get_sensor_info = this.apiroute + '/aircon/get_sensor_info';
       this.get_control_info = this.apiroute + '/aircon/get_control_info';
       this.get_model_info = this.apiroute + '/aircon/get_model_info';
       this.set_control_info = this.apiroute + '/aircon/set_control_info';
       this.basic_info = this.apiroute + '/common/basic_info';
-      break;
+      break;}
   }
 
   this.log.debug('Get sensor info %s', this.get_sensor_info);

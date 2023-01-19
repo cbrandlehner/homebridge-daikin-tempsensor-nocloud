@@ -284,7 +284,7 @@ Daikin.prototype = {
 			.setCharacteristic(Characteristic.Manufacturer, 'Plugin: homebridge-daikin-tempsensor-nocloud')
 			.setCharacteristic(Characteristic.Model, this.model)
 			.setCharacteristic(Characteristic.FirmwareRevision, this.firmwareRevision)
-			.setCharacteristic(Characteristic.SerialNumber, this.firmwareRevision);
+			.setCharacteristic(Characteristic.SerialNumber, this.name);
 
     if (this.outsidemode === true) {
       this.temperatureService

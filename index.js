@@ -1,6 +1,8 @@
 /* eslint no-unused-vars: ["warn", {"args": "none"}  ] */
 let Service;
 let Characteristic;
+const https = require('node:https');
+const crypto = require('node:crypto');
 const superagent = require('superagent');
 const Cache = require('./cache.js');
 const Queue = require('./queue.js');
@@ -74,6 +76,11 @@ function Daikin(log, config) {
     this.system = config.system;
   }
 
+  if (config.OpenSSL3 === undefined || config.OpenSSL3 === false)
+    this.OpenSSL3 = false;
+  else
+    this.OpenSSL3 = true;
+
   if (config.uuid === undefined)
       this.uuid = '';
     else
@@ -123,7 +130,7 @@ function Daikin(log, config) {
   this.log.info('accessory name: ' + this.name);
   this.log.info('accessory ip: ' + this.apiIP);
   this.log.debug('system: ' + this.system);
-  this.log.debug('Debug mode enabled');
+  this.log.debug('Debug mode is enabled');
 
   this.temperatureService = new Service.TemperatureSensor(this.name);
 }
@@ -188,10 +195,23 @@ Daikin.prototype = {
       })
       .set('User-Agent', 'superagent')
       .set('Host', this.apiIP);
-    if (this.uuid !== '') {
-        request.set('X-Daikin-uuid', this.uuid)
-            .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
-    }
+      if (this.uuid !== '') {
+        if (this.OpenSSL3 === true) {
+            // Code for Node.js 18 and newer
+            request.set('X-Daikin-uuid', this.uuid);
+            // The Daikin units use a self-signed cert and the CA is not public available.
+            // Node.js 18 supports OpenSSL 3.0 which requires secure renegotiation by default.
+            const unsafeAgent = new https.Agent({
+                rejectUnauthorized: false,
+                secureOptions: crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION,
+            });
+            request.agent(unsafeAgent);
+          } else {
+            // this code fails with NodeJS 18
+            request.set('X-Daikin-uuid', this.uuid)
+              .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
+          }
+        }
 
     request.end((error, response) => {
       if (error) {

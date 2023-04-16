@@ -35,6 +35,12 @@
         "enum": [ "Default", "Skyfi" ],
         "default": "Default"
       },
+      "OpenSSL3": {
+        "title": "OpenSSL3 support",
+        "description": "Use new OpenSSL3 SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION option",
+        "type": "boolean",
+        "default": false
+      },
       "response": {
         "title": "Response",
 	      "description": "Timeout in milliseconds for the device to start responding.  Default: 2000 (2 seconds).",

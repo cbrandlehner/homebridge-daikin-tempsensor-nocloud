@@ -309,14 +309,18 @@ Daikin.prototype = {
     if (this.outsidemode === true) {
       this.temperatureService
         .getCharacteristic(Characteristic.CurrentTemperature)
-        .setProps({minValue: Number.parseFloat('-50'),
-                   maxValue: Number.parseFloat('100')})
+        .setProps({
+          minValue: Number.parseFloat('-50'),
+          maxValue: Number.parseFloat('100'),
+                  })
         .on('get', this.getCurrentOutsideTemperature.bind(this));
     } else {
       this.temperatureService
         .getCharacteristic(Characteristic.CurrentTemperature)
-        .setProps({minValue: Number.parseFloat('-50'),
-                   maxValue: Number.parseFloat('100')})
+        .setProps({
+          minValue: Number.parseFloat('-50'),
+          maxValue: Number.parseFloat('100'),
+                  })
         .on('get', this.getCurrentTemperature.bind(this));
     }
 

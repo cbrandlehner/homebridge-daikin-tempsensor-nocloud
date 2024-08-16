@@ -23,7 +23,7 @@
     "url": "git+https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud.git"
   },
   "dependencies": {
-    "superagent": "^9.0.2"
+    "superagent": "^10.0.2"
   },
   "bugs": {
     "url": "https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/issues"

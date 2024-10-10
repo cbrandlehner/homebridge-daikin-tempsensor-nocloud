@@ -41,13 +41,13 @@
   ],
   "main": "index.js",
   "scripts": {
-    "pretest": "eslint .gitignore package.json config.schema.json sample-config.json",
+    "lint:json": "jsonlint -q package.json package-lock.json config.schema.json sample-config.json",
+    "pretest": "npm run lint:json",
     "test": "xo"
   },
   "devDependencies": {
-    "eslint": "^9.5.0",
-    "eslint-plugin-json": "^4.0.0",
-    "xo": "^0.59.3"
+    "xo": "^0.59.3",
+    "jsonlint": "^1.6.3" 
   },
   "xo": {
     "space": false,

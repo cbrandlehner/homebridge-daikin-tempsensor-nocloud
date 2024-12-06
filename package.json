@@ -46,7 +46,7 @@
     "test": "xo"
   },
   "devDependencies": {
-    "xo": "^0.59.3",
+    "xo": "^0.60.0",
     "jsonlint": "^1.6.3" 
   },
   "xo": {

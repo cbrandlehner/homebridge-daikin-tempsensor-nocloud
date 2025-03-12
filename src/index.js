@@ -4,9 +4,9 @@ let Characteristic;
 const https = require('node:https');
 const crypto = require('node:crypto');
 const superagent = require('superagent');
+const packageFile = require('../package.json');
 const Cache = require('./cache.js');
 const Queue = require('./queue.js');
-const packageFile = require('./package.json');
 
 function Daikin(log, config) {
   this.log = log;
@@ -50,22 +50,22 @@ function Daikin(log, config) {
   }
 
   if (config.deadline === undefined) {
-      this.log.warn('WARNING: your configuration is missing the parameter "deadline", using default');
-      this.deadline = 10_000;
-      this.log.debug('Config: deadline is %s', this.deadline);
-    } else {
-      this.log.debug('Config: deadline is %s', config.deadline);
-      this.deadline = config.deadline;
-    }
+    this.log.warn('WARNING: your configuration is missing the parameter "deadline", using default');
+    this.deadline = 10_000;
+    this.log.debug('Config: deadline is %s', this.deadline);
+  } else {
+    this.log.debug('Config: deadline is %s', this.deadline);
+    this.deadline = config.deadline;
+  }
 
   if (config.retries === undefined) {
-      this.log.warn('WARNING: your configuration is missing the parameter "retries", using default of 5 retries');
-      this.retries = 3;
-      this.log.debug('Config: retries is %s', this.retries);
-    } else {
-      this.log.debug('Config: retries is %s', config.retries);
-      this.retries = config.retries;
-    }
+    this.log.warn('WARNING: your configuration is missing the parameter "retries", using default of 5 retries');
+    this.retries = 3;
+    this.log.debug('Config: retries is %s', this.retries);
+  } else {
+    this.log.debug('Config: retries is %s', config.retries);
+    this.retries = config.retries;
+  }
 
   if (config.system === undefined) {
     this.log.warn('ERROR: your configuration is missing the parameter "system", using default');
@@ -82,9 +82,9 @@ function Daikin(log, config) {
     this.OpenSSL3 = true;
 
   if (config.uuid === undefined)
-      this.uuid = '';
-    else
-      this.uuid = config.uuid;
+    this.uuid = '';
+  else
+    this.uuid = config.uuid;
 
   switch (this.system) {
     case 'Default': {
@@ -93,7 +93,8 @@ function Daikin(log, config) {
       this.get_model_info = this.apiroute + '/aircon/get_model_info';
       this.set_control_info = this.apiroute + '/aircon/set_control_info';
       this.basic_info = this.apiroute + '/common/basic_info';
-      break;}
+      break;
+    }
 
     case 'Skyfi': {
       this.get_sensor_info = this.apiroute + '/skyfi/aircon/get_sensor_info';
@@ -101,7 +102,8 @@ function Daikin(log, config) {
       this.get_model_info = this.apiroute + '/skyfi/aircon/get_model_info';
       this.set_control_info = this.apiroute + '/skyfi/aircon/set_control_info';
       this.basic_info = this.apiroute + '/skyfi/common/basic_info';
-      break;}
+      break;
+    }
 
     default: {
       this.get_sensor_info = this.apiroute + '/aircon/get_sensor_info';
@@ -109,7 +111,8 @@ function Daikin(log, config) {
       this.get_model_info = this.apiroute + '/aircon/get_model_info';
       this.set_control_info = this.apiroute + '/aircon/set_control_info';
       this.basic_info = this.apiroute + '/common/basic_info';
-      break;}
+      break;
+    }
   }
 
   this.log.debug('Get sensor info %s', this.get_sensor_info);
@@ -136,17 +139,16 @@ function Daikin(log, config) {
 }
 
 Daikin.prototype = {
-
   parseResponse(response) {
-        const vals = {};
-        if (response) {
-            const items = response.split(',');
-            const length = items.length;
-            for (let i = 0; i < length; i++) {
-                const keyValue = items[i].split('=');
-                vals[keyValue[0]] = keyValue[1];
-            }
-        }
+    const vals = {};
+    if (response) {
+      const items = response.split(',');
+      const length = items.length;
+      for (let i = 0; i < length; i++) {
+        const keyValue = items[i].split('=');
+        vals[keyValue[0]] = keyValue[1];
+      }
+    }
 
     return vals;
   },
@@ -165,19 +167,19 @@ Daikin.prototype = {
     this.queue[method](done => {
       this.log.debug('_queueGetRequest: executing queued request: path: %s', path);
 
-        this._doSendGetRequest(path, (error, response) => {
-          if (error) {
-            this.log.error('ERROR: Queued request to %s returned error %s', path, error);
-            done();
-            return;
-          }
-
-          this.log.debug('_queueGetRequest: queued request finished: path: %s', path);
-
-          // actual response callback
-          callback(response);
+      this._doSendGetRequest(path, (error, response) => {
+        if (error) {
+          this.log.error('ERROR: Queued request to %s returned error %s', path, error);
           done();
-        }, options);
+          return;
+        }
+
+        this.log.debug('_queueGetRequest: queued request finished: path: %s', path);
+
+        // actual response callback
+        callback(response);
+        done();
+      }, options);
     });
   },
 
@@ -195,23 +197,23 @@ Daikin.prototype = {
       })
       .set('User-Agent', 'superagent')
       .set('Host', this.apiIP);
-      if (this.uuid !== '') {
-        if (this.OpenSSL3 === true) {
-            // Code for Node.js 18 and newer
-            request.set('X-Daikin-uuid', this.uuid);
-            // The Daikin units use a self-signed cert and the CA is not public available.
-            // Node.js 18 supports OpenSSL 3.0 which requires secure renegotiation by default.
-            const unsafeAgent = new https.Agent({
-                rejectUnauthorized: false,
-                secureOptions: crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION,
-            });
-            request.agent(unsafeAgent);
-          } else {
-            // this code fails with NodeJS 18
-            request.set('X-Daikin-uuid', this.uuid)
-              .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
-          }
-        }
+    if (this.uuid !== '') {
+      if (this.OpenSSL3 === true) {
+        // Code for Node.js 18 and newer
+        request.set('X-Daikin-uuid', this.uuid);
+        // The Daikin units use a self-signed cert and the CA is not public available.
+        // Node.js 18 supports OpenSSL 3.0 which requires secure renegotiation by default.
+        const unsafeAgent = new https.Agent({
+          rejectUnauthorized: false,
+          secureOptions: crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION,
+        });
+        request.agent(unsafeAgent);
+      } else {
+        // this code fails with NodeJS 18
+        request.set('X-Daikin-uuid', this.uuid)
+          .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
+      }
+    }
 
     request.end((error, response) => {
       if (error) {
@@ -260,22 +262,22 @@ Daikin.prototype = {
   },
 
   getCurrentTemperature(callback) {
-          this.log.debug('getCurrentTemperature using %s', this.get_sensor_info);
-          this.sendGetRequest(this.get_sensor_info, body => {
-                  const responseValues = this.parseResponse(body);
-                  const currentTemperature = Number.parseFloat(responseValues.htemp);
-                  callback(null, currentTemperature);
-          });
-        },
+    this.log.debug('getCurrentTemperature using %s', this.get_sensor_info);
+    this.sendGetRequest(this.get_sensor_info, body => {
+      const responseValues = this.parseResponse(body);
+      const currentTemperature = Number.parseFloat(responseValues.htemp);
+      callback(null, currentTemperature);
+    });
+  },
 
   getCurrentOutsideTemperature(callback) {
-                this.log.debug('getCurrentOutsideTemperature using %s', this.get_sensor_info);
-                this.sendGetRequest(this.get_sensor_info, body => {
-                        const responseValues = this.parseResponse(body);
-                        const currentOutsideTemperature = Number.parseFloat(responseValues.otemp);
-                        callback(null, currentOutsideTemperature);
-                });
-              },
+    this.log.debug('getCurrentOutsideTemperature using %s', this.get_sensor_info);
+    this.sendGetRequest(this.get_sensor_info, body => {
+      const responseValues = this.parseResponse(body);
+      const currentOutsideTemperature = Number.parseFloat(responseValues.otemp);
+      callback(null, currentOutsideTemperature);
+    });
+  },
 
   identify: function (callback) {
     this.log.info('Identify requested, however there is no way to let your Daikin WIFI module speak up for identification!');
@@ -295,16 +297,16 @@ Daikin.prototype = {
     callback(error);
   },
 
-	getServices: function () {
+  getServices: function () {
     const informationService = new Service.AccessoryInformation();
 
-		this.getModelInfo();
+    this.getModelInfo();
 
-		informationService
-			.setCharacteristic(Characteristic.Manufacturer, 'Plugin: homebridge-daikin-tempsensor-nocloud')
-			.setCharacteristic(Characteristic.Model, this.model)
-			.setCharacteristic(Characteristic.FirmwareRevision, this.firmwareRevision)
-			.setCharacteristic(Characteristic.SerialNumber, this.name);
+    informationService
+      .setCharacteristic(Characteristic.Manufacturer, 'Plugin: homebridge-daikin-tempsensor-nocloud')
+      .setCharacteristic(Characteristic.Model, this.model)
+      .setCharacteristic(Characteristic.FirmwareRevision, this.firmwareRevision)
+      .setCharacteristic(Characteristic.SerialNumber, this.name);
 
     if (this.outsidemode === true) {
       this.temperatureService
@@ -312,7 +314,7 @@ Daikin.prototype = {
         .setProps({
           minValue: Number.parseFloat('-50'),
           maxValue: Number.parseFloat('100'),
-                  })
+        })
         .on('get', this.getCurrentOutsideTemperature.bind(this));
     } else {
       this.temperatureService
@@ -320,7 +322,7 @@ Daikin.prototype = {
         .setProps({
           minValue: Number.parseFloat('-50'),
           maxValue: Number.parseFloat('100'),
-                  })
+        })
         .on('get', this.getCurrentTemperature.bind(this));
     }
 
@@ -330,7 +332,7 @@ Daikin.prototype = {
   },
 
   getModelInfo: function () {
-		// A function to prompt the model information and the firmware revision
+    // A function to prompt the model information and the firmware revision
     this.sendGetRequest(this.get_model_info, body => {
       const responseValues = this.parseResponse(body);
       this.log.debug('getModelInfo return code %s', responseValues.ret);
@@ -342,8 +344,8 @@ Daikin.prototype = {
           this.log.info('Your Daikin WIFI controller model: %s', responseValues.model);
         }
       } else {
-       this.log.error('Not connected to a supported Daikin wifi controller!');
-       this.log.warn('Response is %s', body);
+        this.log.error('Not connected to a supported Daikin wifi controller!');
+        this.log.warn('Response is %s', body);
       }
     });
     this.sendGetRequest(this.basic_info, body => {
@@ -355,10 +357,10 @@ Daikin.prototype = {
       } else {
         this.firmwareRevision = 'NOTSUPPORT';
         this.log.error('getModelInfo for basic info: Not connected to a supported Daikin wifi controller!');
-        }
-      });
-    },
-  };
+      }
+    });
+  },
+};
 
 module.exports = function (homebridge) {
   Service = homebridge.hap.Service;

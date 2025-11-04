@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-tempsensor-nocloud",
-  "version": "1.2.2",
+  "version": "1.3.0",
   "description": "Provides temperature sensor for HomeKit as plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
@@ -8,8 +8,8 @@
     "daikin"
   ],
   "engines": {
-    "homebridge": "^1.6.1 || ^2.0.0-beta.0",
-    "node": "^18.19.1 || ^20.15.1 || ^22.12.0"
+    "homebridge": "^1.10.0 || ^2.0.0-beta.0",
+    "node": "^20.15.1 || ^22.12.0"
   },
   "author": "Christian Brandlehner",
   "contributors": [
@@ -23,7 +23,8 @@
     "url": "git+https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud.git"
   },
   "dependencies": {
-    "superagent": "^10.1.0"
+    "superagent": "^10.2.3",
+    "ws": "^8.18.0"
   },
   "bugs": {
     "url": "https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/issues"
@@ -41,26 +42,52 @@
   ],
   "main": "src/index.js",
   "scripts": {
-    "lint:json": "xo --no-semantic --ext .json",
+    "lint:json": "eslint --ext .json .",
     "pretest": "npm run lint:json",
     "test": "xo"
   },
   "devDependencies": {
-    "xo": "^0.56.0",
-    "eslint-plugin-json": "^4.0.1"
+    "@eslint/json": "^0.13.2",
+    "eslint": "^9.39.1",
+    "xo": "^1.2.3"
   },
   "xo": {
-    "space": false,
     "rules": {
+      "stylistic/indent-binary-ops": "off",
+      "@stylistic/indent": "off",
+      "@stylistic/no-trailing-spaces": [
+        "error",
+        {
+          "skipBlankLines": true
+        }
+      ],
+      "@stylistic/comma-dangle": "off",
+      "@stylistic/arrow-parens": [
+        "warn",
+        "as-needed"
+      ],
+      "@stylistic/brace-style": "off",
+      "@stylistic/indent-binary-ops": [
+        "warn",
+        2
+      ],
       "camelcase": "off",
-      "no-mixed-spaces-and-tabs": "warn",
-      "no-useless-escape": "warn",
-      "indent": "off",
-      "quotes": "warn",
       "capitalized-comments": "off",
+      "curly": [
+        "error",
+        "multi-or-nest",
+        "consistent"
+      ],
+      "no-mixed-spaces-and-tabs": "warn",
+      "no-unused-vars": "warn",
+      "no-useless-escape": "warn",
+      "no-use-before-define": [
+        "error",
+        {
+          "classes": false
+        }
+      ],
       "no-var": "warn",
-      "prefer-destructuring": "off",
-      "prefer-arrow-callback": "warn",
       "object-shorthand": [
         "off",
         "always",
@@ -68,28 +95,18 @@
           "ignoreConstructors": true
         }
       ],
-      "quote-props": "error",
-      "no-unused-vars": "warn",
-      "curly": [
-        "error",
-        "multi-or-nest",
-        "consistent"
-      ],
-      "no-use-before-define": [
-        "error",
-        {
-          "classes": false
-        }
-      ],
-      "complexity": [
-        "error",
-        25
-      ],
-      "unicorn/prefer-ternary": "off",
-      "unicorn/prefer-module": "warn",
-      "unicorn/no-anonymous-default-export": "off",
+      "prefer-arrow-callback": "warn",
+      "prefer-destructuring": "warn",
+      "promise/prefer-await-to-then": "off",
+      "quotes": "off",
+      "quote-props": "off",
       "unicorn/expiring-todo-comments": "off",
-      "@stylistic/indent-binary-ops": "off"
+      "unicorn/no-anonymous-default-export": "off",
+      "unicorn/prefer-module": "off",
+      "unicorn/prefer-string-replace-all": "warn",
+      "unicorn/prefer-switch": "warn",
+      "unicorn/prefer-ternary": "off",
+      "unicorn/prevent-abbreviations": "off"
     }
   }
 }

@@ -1,12 +1,72 @@
 /* eslint no-unused-vars: ["warn", {"args": "none"}  ] */
+/* eslint curly: "off" */
+/* eslint logical-assignment-operators: ["error", "always", { enforceForIfStatements: false }] */
+/* eslint quotes: ["error", "single", { "avoidEscape": true }] */
+/* eslint quote-props: ["error", "consistent-as-needed"] */
+/* eslint no-unused-expressions: "warn" */
+
 let Service;
 let Characteristic;
 const https = require('node:https');
+const http = require('node:http');
 const crypto = require('node:crypto');
+const process = require('node:process');
 const superagent = require('superagent');
 const packageFile = require('../package.json');
 const Cache = require('./cache.js');
 const Queue = require('./queue.js');
+// const Throttle = require('superagent-throttle'); // optional, kept for parity if needed
+
+// --- BEGIN: OpenSSL / Agent helpers (added) ---
+/* eslint-disable no-bitwise */
+const SECURE_OPS
+  = ((crypto.constants && crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION) || 0)
+    | ((crypto.constants && crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT) || 0);
+/* eslint-enable no-bitwise */
+
+function isOpenSSL3() {
+  return (process.versions.openssl || '').startsWith('3.');
+}
+
+let LEGACY_AGENT = null;
+let DEFAULT_AGENT = null;
+let DEFAULT_HTTP_AGENT = null;
+
+function getLegacyAgent() {
+  if (!LEGACY_AGENT) {
+    LEGACY_AGENT = new https.Agent({
+      keepAlive: true,
+      rejectUnauthorized: false,
+      minVersion: 'TLSv1.2',
+      maxVersion: 'TLSv1.2',
+      secureOptions: SECURE_OPS,
+    });
+  }
+
+  return LEGACY_AGENT;
+}
+
+function getDefaultAgent() {
+  if (!DEFAULT_AGENT) {
+    DEFAULT_AGENT = new https.Agent({
+      keepAlive: true,
+      rejectUnauthorized: false,
+    });
+  }
+
+  return DEFAULT_AGENT;
+}
+
+function getDefaultHttpAgent() {
+  if (!DEFAULT_HTTP_AGENT) {
+    DEFAULT_HTTP_AGENT = new http.Agent({
+      keepAlive: true,
+    });
+  }
+
+  return DEFAULT_HTTP_AGENT;
+}
+// --- END: OpenSSL / Agent helpers ---
 
 function Daikin(log, config) {
   this.log = log;
@@ -184,48 +244,70 @@ Daikin.prototype = {
   },
 
   _doSendGetRequest(path, callback, options) {
-    if (this._serveFromCache(path, callback, options))
-      return;
+    if (this._serveFromCache && this._serveFromCache(path, callback, options)) return;
 
     this.log.debug('_doSendGetRequest: requesting from API: path: %s', path);
-    const request = superagent
+
+    let request = superagent
       .get(path)
-      .retry(this.retries) // retry 3 (default) times
+      .retry(this.retries)
       .timeout({
-        response: this.response, // Wait 5 (default) seconds for the server to start sending,
-        deadline: this.deadline, // but allow 10 (default) seconds for the request to finish loading.
+        response: this.response,
+        deadline: this.deadline,
       })
       .set('User-Agent', 'superagent')
       .set('Host', this.apiIP);
+
     if (this.uuid !== '') {
-      if (this.OpenSSL3 === true) {
-        // Code for Node.js 18 and newer
-        request.set('X-Daikin-uuid', this.uuid);
-        // The Daikin units use a self-signed cert and the CA is not public available.
-        // Node.js 18 supports OpenSSL 3.0 which requires secure renegotiation by default.
-        const unsafeAgent = new https.Agent({
-          rejectUnauthorized: false,
-          secureOptions: crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION,
-        });
-        request.agent(unsafeAgent);
+      request = request.set('X-Daikin-uuid', this.uuid);
+    }
+
+    // Choose agent based on URL protocol and OpenSSL version to avoid .disableTLSCerts issues
+    let urlProtocol = 'https:';
+    try {
+      urlProtocol = new URL(path).protocol;
+    } catch {
+      urlProtocol = 'https:';
+    }
+
+    if (urlProtocol === 'https:') {
+      if (isOpenSSL3()) {
+        request = request.agent(getLegacyAgent());
+      } else if (typeof request.disableTLSCerts === 'function') {
+        request = request.disableTLSCerts();
       } else {
-        // this code fails with NodeJS 18
-        request.set('X-Daikin-uuid', this.uuid)
-          .disableTLSCerts(); // the units use a self-signed cert and the CA doesn't seem to be publicly available
+        request = request.agent(getDefaultAgent());
       }
+    } else {
+      // plain http
+      request = request.agent(getDefaultHttpAgent());
     }
 
     request.end((error, response) => {
       if (error) {
-        callback(error);
-        return this.log.error('_doSendGetRequest: ERROR: API request to %s returned error %s', path, error);
+        if (error.timeout) {/* timed out */}
+        else if (error.code === 'ECONNRESET') {
+          this.log.debug('_doSendGetRequest: eConnreset filtered');
+        } else {
+          this.log.error('_doSendGetRequest: ERROR: API request to %s returned error %s', path, error);
+        }
+
+        return callback && callback(error);
       }
 
-      this.log.debug('_doSendGetRequest: This is the APIs response: %s', response.text);
-      this.log.debug('_doSendGetRequest: populating cache: path: %s', path);
-      this.cache.set(path, response.text);
+      // Prefer text when available (keeps compatibility with parseResponse callers)
+      const body = response && (response.text ?? (typeof response.body === 'string' ? response.body : JSON.stringify(response.body)));
+      try {
+        if (this.cache && typeof this.cache.set === 'function') {
+          this.log.debug('_doSendGetRequest: set cache: path: %s', path);
+          this.cache.set(path, body);
+        }
+      } catch (error) {
+        this.log.debug('_doSendGetRequest: cache set failed: %s', error.message || error);
+      }
 
-      callback(error, response.text);
+      this.log.debug('_doSendGetRequest: response from API: %s', body);
+      return callback && callback(null, body);
     });
   },
 

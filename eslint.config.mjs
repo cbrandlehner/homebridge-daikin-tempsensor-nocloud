@@ -1,9 +1,10 @@
-import json from 'eslint-plugin-json';
+import json from '@eslint/json';
+import {defineConfig} from 'eslint/config';
 
-/* eslint import/no-anonymous-default-export: ["off"] */
-
-export default [{
-    plugins: {
-        json,
-    },
-}];
+export default defineConfig([
+  {
+    files: ['**/*.json'],
+    plugins: {json},
+    language: 'json/jsonc',
+  },
+]);

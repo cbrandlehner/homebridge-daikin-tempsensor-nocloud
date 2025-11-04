@@ -24,12 +24,7 @@ This plugin retrieves sensor and mode data from a [Daikin WIFI controller](https
 
 The install may require you to run as an administrator (using a different login or sudo).
 It is recommended to configure your DHCP server to reserve an IP for the wifi controller.
-This plugin can be installed using the [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x#readme) or manually by following these steps:
-
-1. Install homebridge using: npm install -g homebridge
-2. Install this plugin using: npm install -g homebridge-daikin-tempsensor-nocloud
-3. Update your configuration file. See sample-config.json in this repository for a sample.
-
+This plugin can be installed using [Homebridge UI](https://github.com/oznu/homebridge-config-ui-x#readme). Manual installation and configuration is not recommended.
 
 # Configuration
 

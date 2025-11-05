@@ -100,6 +100,15 @@ function Daikin(log, config) {
     this.log.debug('Config: apiroute is %s', config.apiroute);
   }
 
+    if (config.temperatureOffset === undefined) {
+    this.log.warn('WARNING: your configuration is missing the parameter "temperatureOffset", using default zero');
+    this.temperatureOffset = 0;
+    this.log.debug('Config: temperatureOffset is %s', this.temperatureOffset);
+  } else {
+    this.log.debug('Config: temperatureOffset is %s', config.temperatureOffset);
+    this.temperatureOffset = config.temperatureOffset;
+  }
+
   if (config.response === undefined) {
     this.log.warn('WARNING: your configuration is missing the parameter "response", using default');
     this.response = 5000;
@@ -347,8 +356,15 @@ Daikin.prototype = {
     this.log.debug('getCurrentTemperature using %s', this.get_sensor_info);
     this.sendGetRequest(this.get_sensor_info, body => {
       const responseValues = this.parseResponse(body);
-      const currentTemperature = Number.parseFloat(responseValues.htemp);
-      callback(null, currentTemperature);
+      const rawTemperature = Number.parseFloat(responseValues.htemp);
+      const adjustedTemperature = rawTemperature + this.temperatureOffset;
+      this.log.debug(
+        'Temperature (raw): %s°, offset: %s°, adjusted: %s°',
+        rawTemperature.toFixed(1),
+        this.temperatureOffset.toFixed(1),
+        adjustedTemperature.toFixed(1)
+        );
+      callback(null, adjustedTemperature);
     });
   },
 
@@ -356,8 +372,15 @@ Daikin.prototype = {
     this.log.debug('getCurrentOutsideTemperature using %s', this.get_sensor_info);
     this.sendGetRequest(this.get_sensor_info, body => {
       const responseValues = this.parseResponse(body);
-      const currentOutsideTemperature = Number.parseFloat(responseValues.otemp);
-      callback(null, currentOutsideTemperature);
+      const rawTemperature = Number.parseFloat(responseValues.otemp);
+      const adjustedTemperature = rawTemperature + this.temperatureOffset;
+      this.log.debug(
+        'Temperature (raw): %s°, offset: %s°, adjusted: %s°',
+        rawTemperature.toFixed(1),
+        this.temperatureOffset.toFixed(1),
+        adjustedTemperature.toFixed(1)
+        );
+      callback(null, adjustedTemperature);
     });
   },
 

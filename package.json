@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-tempsensor-nocloud",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Provides temperature sensor for HomeKit as plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [

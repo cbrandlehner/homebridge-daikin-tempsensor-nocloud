@@ -50,8 +50,8 @@
       "system": {
         "type": "string",
         "title": "Controller Type",
-        "description": "Select your WiFi controller type: 'Default' for standard Daikin WiFi modules (BRP069xxx), 'Skyfi' for Skyfi controllers, or 'Faikin' for ESP32-Faikin open-source controllers. Choose 'Faikin' if you installed the ESP32-Faikin firmware on an ESP32 chip.",
-        "enum": [ "Default", "Skyfi", "Faikin" ],
+        "description": "Select your WiFi controller type: 'Default' for standard Daikin WiFi modules (BRP069xxx) or 'Skyfi' for Skyfi controllers.",
+        "enum": [ "Default", "Skyfi" ],
         "default": "Default",
         "required": true
       },

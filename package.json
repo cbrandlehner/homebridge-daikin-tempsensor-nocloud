@@ -111,6 +111,10 @@
       "unicorn/no-array-reverse": "off",
       "unicorn/prefer-class-fields": "off",
       "unicorn/require-module-specifiers": "off"
+      "unicorn/no-array-push-push": "off",
+      "unicorn/prefer-module": "off",
+      "unicorn/prefer-node-protocol": "off",
+      "@stylistic/curly-newline": "off"
     }
   }
 }

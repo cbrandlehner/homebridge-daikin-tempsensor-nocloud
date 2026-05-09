@@ -29,8 +29,14 @@
         "required": true,
         "default": "C",
         "oneOf": [
-          {"title": "Fahrenheit", "enum": ["F"]},
-          {"title": "Celsius", "enum": ["C"]}
+          {
+            "title": "Fahrenheit",
+            "enum": ["F"]
+          },
+          {
+            "title": "Celsius",
+            "enum": ["C"]
+          }
         ]
       },
       "temperatureOffset": {

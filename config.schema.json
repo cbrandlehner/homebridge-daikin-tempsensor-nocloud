@@ -63,7 +63,7 @@
       },
       "response": {
         "title": "Response",
-	      "description": "Timeout in milliseconds for the device to start responding.  Default: 2000 (2 seconds).",
+        "description": "Timeout in milliseconds for the device to start responding.  Default: 2000 (2 seconds).",
         "type": "integer",
         "default": 2000,
         "minimum": 2000,
@@ -71,7 +71,7 @@
       },
       "deadline": {
         "title": "Deadline",
-	      "description": "Timeout in milliseconds for the device to complete a response.  Default: 60000 (one minute).",
+        "description": "Timeout in milliseconds for the device to complete a response.  Default: 60000 (one minute).",
         "type": "integer",
         "default": 60000,
         "minimum": 10000,
@@ -79,7 +79,7 @@
       },
       "retries": {
         "title": "Retries",
-	      "description": "The plugin can retry to reconnect in case of a connection problem. Default: 5.",
+        "description": "The plugin can retry to reconnect in case of a connection problem. Default: 5.",
         "type": "integer",
         "default": 5,
         "minimum": 0,

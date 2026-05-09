@@ -28,8 +28,10 @@
         "type": "string",
         "required": true,
         "default": "C",
-        "oneOf": [{"title": "Fahrenheit", "enum": ["F"]},
-                  {"title": "Celsius", "enum": ["C"]}]
+        "oneOf": [
+          {"title": "Fahrenheit", "enum": ["F"]},
+          {"title": "Celsius", "enum": ["C"]}
+        ]
       },
       "temperatureOffset": {
         "title": "Temperature-Offset",
@@ -51,7 +53,7 @@
         "type": "string",
         "title": "Controller Type",
         "description": "Select your WiFi controller type: 'Default' for standard Daikin WiFi modules (BRP069xxx) or 'Skyfi' for Skyfi controllers.",
-        "enum": [ "Default", "Skyfi" ],
+        "enum": ["Default", "Skyfi"],
         "default": "Default",
         "required": true
       },

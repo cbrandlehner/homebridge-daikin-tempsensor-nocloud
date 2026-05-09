@@ -106,7 +106,11 @@
       "unicorn/prefer-string-replace-all": "warn",
       "unicorn/prefer-switch": "warn",
       "unicorn/prefer-ternary": "off",
-      "unicorn/prevent-abbreviations": "off"
+      "unicorn/prevent-abbreviations": "off",
+      "unicorn/no-array-sort": "off",
+      "unicorn/no-array-reverse": "off",
+      "unicorn/prefer-class-fields": "off",
+      "unicorn/require-module-specifiers": "off"
     }
   }
 }

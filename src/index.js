@@ -239,14 +239,14 @@ Daikin.prototype = {
       this._doSendGetRequest(path, (error, response) => {
         if (error) {
           this.log.error('ERROR: Queued request to %s returned error %s', path, error);
+          callback(error);
           done();
           return;
         }
 
         this.log.debug('_queueGetRequest: queued request finished: path: %s', path);
 
-        // actual response callback
-        callback(response);
+        callback(null, response);
         done();
       }, options);
     });
@@ -352,36 +352,40 @@ Daikin.prototype = {
     return true;
   },
 
-  getCurrentTemperature(callback) {
-    this.log.debug('getCurrentTemperature using %s', this.get_sensor_info);
-    this.sendGetRequest(this.get_sensor_info, body => {
+  _readTemperature(field, callback) {
+    this.log.debug('_readTemperature(%s) using %s', field, this.get_sensor_info);
+    this.sendGetRequest(this.get_sensor_info, (error, body) => {
+      if (error) {
+        return callback(error);
+      }
+
       const responseValues = this.parseResponse(body);
-      const rawTemperature = Number.parseFloat(responseValues.htemp);
+      if (responseValues.ret !== 'OK') {
+        return callback(new Error(`Daikin API error: ${responseValues.ret ?? body}`));
+      }
+
+      const rawTemperature = Number.parseFloat(responseValues[field]);
+      if (!Number.isFinite(rawTemperature)) {
+        return callback(new Error(`Invalid temperature (${field}): ${responseValues[field]}`));
+      }
+
       const adjustedTemperature = rawTemperature + this.temperatureOffset;
       this.log.debug(
         'Temperature (raw): %s°, offset: %s°, adjusted: %s°',
         rawTemperature.toFixed(1),
         this.temperatureOffset.toFixed(1),
         adjustedTemperature.toFixed(1)
-        );
+      );
       callback(null, adjustedTemperature);
     });
   },
 
+  getCurrentTemperature(callback) {
+    this._readTemperature('htemp', callback);
+  },
+
   getCurrentOutsideTemperature(callback) {
-    this.log.debug('getCurrentOutsideTemperature using %s', this.get_sensor_info);
-    this.sendGetRequest(this.get_sensor_info, body => {
-      const responseValues = this.parseResponse(body);
-      const rawTemperature = Number.parseFloat(responseValues.otemp);
-      const adjustedTemperature = rawTemperature + this.temperatureOffset;
-      this.log.debug(
-        'Temperature (raw): %s°, offset: %s°, adjusted: %s°',
-        rawTemperature.toFixed(1),
-        this.temperatureOffset.toFixed(1),
-        adjustedTemperature.toFixed(1)
-        );
-      callback(null, adjustedTemperature);
-    });
+    this._readTemperature('otemp', callback);
   },
 
   identify: function (callback) {
@@ -396,7 +400,7 @@ Daikin.prototype = {
   },
 
   setTemperatureDisplayUnits: function (value, callback) {
-    this.log('Changing temperature unit from %s to %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits, value);
+    this.log.info('Changing temperature unit from %s to %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits, value);
     this.temperatureDisplayUnits = value;
     const error = null;
     callback(error);
@@ -438,7 +442,12 @@ Daikin.prototype = {
 
   getModelInfo: function () {
     // A function to prompt the model information and the firmware revision
-    this.sendGetRequest(this.get_model_info, body => {
+    this.sendGetRequest(this.get_model_info, (error, body) => {
+      if (error) {
+        this.log.error('getModelInfo request failed: %s', error);
+        return;
+      }
+
       const responseValues = this.parseResponse(body);
       this.log.debug('getModelInfo return code %s', responseValues.ret);
       this.log.debug('getModelInfo %s', responseValues.model);
@@ -453,12 +462,17 @@ Daikin.prototype = {
         this.log.warn('Response is %s', body);
       }
     });
-    this.sendGetRequest(this.basic_info, body => {
+    this.sendGetRequest(this.basic_info, (error, body) => {
+      if (error) {
+        this.log.error('getModelInfo basic_info request failed: %s', error);
+        return;
+      }
+
       const responseValues = this.parseResponse(body);
       this.log.debug('getModelInfo for basic info return code %s', responseValues.ret);
       if (responseValues.ret === 'OK') {
         this.firmwareRevision = responseValues.ver;
-        this.log('The firmware version is %s', this.firmwareRevision);
+        this.log.info('The firmware version is %s', this.firmwareRevision);
       } else {
         this.firmwareRevision = 'NOTSUPPORT';
         this.log.error('getModelInfo for basic info: Not connected to a supported Daikin wifi controller!');

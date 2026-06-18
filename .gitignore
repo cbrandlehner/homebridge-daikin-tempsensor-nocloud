@@ -34,3 +34,6 @@ node_modules
 
 # IDE directories
 .idea
+
+# Local dev sync script (machine-specific Docker paths)
+scripts/sync-to-homebridge.sh

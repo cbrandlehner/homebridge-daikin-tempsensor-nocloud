@@ -1,3 +1,9 @@
+/**
+ * Parse a comma-separated Daikin API response body into key/value pairs.
+ *
+ * @param {string | null | undefined} response Raw response text from the controller.
+ * @returns {Record<string, string>} Parsed fields keyed by name.
+ */
 function parseResponse(response) {
   const vals = {};
   if (!response) {

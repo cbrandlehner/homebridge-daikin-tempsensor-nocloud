@@ -1,3 +1,4 @@
+/** @returns {import('homebridge').Logger} */
 function createMockLog() {
   const methods = ['debug', 'info', 'warn', 'error'];
   const log = {};
@@ -9,6 +10,12 @@ function createMockLog() {
   return log;
 }
 
+/**
+ * Create a Daikin accessory instance with a minimal Homebridge mock.
+ *
+ * @param {object} [config={}] Accessory config overrides.
+ * @returns {object} Configured Daikin accessory instance.
+ */
 function createDaikin(config = {}) {
   let Accessory;
 
@@ -56,6 +63,11 @@ function createDaikin(config = {}) {
   });
 }
 
+/**
+ * @param {object} daikin Daikin accessory instance.
+ * @param {'htemp' | 'otemp'} field Temperature field to read.
+ * @returns {Promise<number>} Adjusted temperature in degrees Celsius.
+ */
 function readTemperature(daikin, field) {
   return new Promise((resolve, reject) => {
     daikin._readTemperature(field, (error, value) => {

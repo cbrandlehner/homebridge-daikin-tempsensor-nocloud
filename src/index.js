@@ -1,9 +1,9 @@
-/* eslint no-unused-vars: ["warn", {"args": "none"}  ] */
-/* eslint curly: "off" */
-/* eslint logical-assignment-operators: ["error", "always", { enforceForIfStatements: false }] */
-/* eslint quotes: ["error", "single", { "avoidEscape": true }] */
-/* eslint quote-props: ["error", "consistent-as-needed"] */
-/* eslint no-unused-expressions: "warn" */
+/**
+ * Homebridge accessory that exposes Daikin Wi-Fi controller temperature readings
+ * as a HomeKit temperature sensor (indoor or outdoor).
+ *
+ * @module homebridge-daikin-tempsensor-nocloud
+ */
 
 let Service;
 let Characteristic;
@@ -15,15 +15,15 @@ const superagent = require('superagent');
 const packageFile = require('../package.json');
 const Cache = require('./cache.js');
 const Queue = require('./queue.js');
+const parseResponse = require('./parse-response.js');
 // const Throttle = require('superagent-throttle'); // optional, kept for parity if needed
 
 // --- BEGIN: OpenSSL / Agent helpers (added) ---
-/* eslint-disable no-bitwise */
 const SECURE_OPS
   = ((crypto.constants && crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION) || 0)
     | ((crypto.constants && crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT) || 0);
-/* eslint-enable no-bitwise */
 
+/** @returns {boolean} Whether the runtime OpenSSL version is 3.x. */
 function isOpenSSL3() {
   return (process.versions.openssl || '').startsWith('3.');
 }
@@ -32,6 +32,7 @@ let LEGACY_AGENT = null;
 let DEFAULT_AGENT = null;
 let DEFAULT_HTTP_AGENT = null;
 
+/** @returns {import('node:https').Agent} Reusable HTTPS agent for OpenSSL 3 legacy Daikin TLS. */
 function getLegacyAgent() {
   if (!LEGACY_AGENT) {
     LEGACY_AGENT = new https.Agent({
@@ -46,6 +47,7 @@ function getLegacyAgent() {
   return LEGACY_AGENT;
 }
 
+/** @returns {import('node:https').Agent} Reusable HTTPS agent with certificate verification disabled. */
 function getDefaultAgent() {
   if (!DEFAULT_AGENT) {
     DEFAULT_AGENT = new https.Agent({
@@ -57,6 +59,7 @@ function getDefaultAgent() {
   return DEFAULT_AGENT;
 }
 
+/** @returns {import('node:http').Agent} Reusable plain-HTTP agent with keep-alive. */
 function getDefaultHttpAgent() {
   if (!DEFAULT_HTTP_AGENT) {
     DEFAULT_HTTP_AGENT = new http.Agent({
@@ -68,6 +71,23 @@ function getDefaultHttpAgent() {
 }
 // --- END: OpenSSL / Agent helpers ---
 
+/**
+ * Daikin temperature sensor accessory.
+ *
+ * @param {import('homebridge').Logger} log Homebridge logger.
+ * @param {object} config Plugin configuration from `config.json`.
+ * @param {string} [config.name] Accessory display name.
+ * @param {boolean} [config.outsidemode] Read outdoor (`otemp`) instead of indoor (`htemp`) temperature.
+ * @param {string} [config.apiroute] Base URL of the Daikin controller (e.g. `http://192.168.1.88`).
+ * @param {number} [config.temperatureOffset] Degrees added to the reported temperature.
+ * @param {number} [config.response] Superagent response timeout in milliseconds.
+ * @param {number} [config.deadline] Superagent deadline timeout in milliseconds.
+ * @param {number} [config.retries] Number of request retries on failure.
+ * @param {'Default' | 'Skyfi'} [config.system] API path prefix for the controller type.
+ * @param {boolean} [config.OpenSSL3] Force legacy TLS agent even when OpenSSL is not 3.x.
+ * @param {string} [config.uuid] Optional `X-Daikin-uuid` header value.
+ * @constructor
+ */
 function Daikin(log, config) {
   this.log = log;
   this.cache = new Cache();
@@ -208,26 +228,27 @@ function Daikin(log, config) {
 }
 
 Daikin.prototype = {
-  parseResponse(response) {
-    const vals = {};
-    if (response) {
-      const items = response.split(',');
-      const length = items.length;
-      for (let i = 0; i < length; i++) {
-        const keyValue = items[i].split('=');
-        vals[keyValue[0]] = keyValue[1];
-      }
-    }
+  /** @type {typeof parseResponse} */
+  parseResponse,
 
-    return vals;
-  },
-
+  /**
+   * Queue a GET request to the Daikin controller.
+   *
+   * @param {string} path Full request URL.
+   * @param {(error: Error | null, body?: string) => void} callback Called with the response body or an error.
+   * @param {{ skipQueue?: boolean, skipCache?: boolean }} [options] Queue and cache behaviour overrides.
+   */
   sendGetRequest(path, callback, options) {
     this.log.debug('sendGetRequest: attempting request: path: %s', path);
 
     this._queueGetRequest(path, callback, options || {});
   },
 
+  /**
+   * @param {string} path Full request URL.
+   * @param {(error: Error | null, body?: string) => void} callback Called with the response body or an error.
+   * @param {{ skipQueue?: boolean, skipCache?: boolean }} options Queue and cache behaviour overrides.
+   */
   _queueGetRequest(path, callback, options) {
     const method = options.skipQueue ? 'prepend' : 'append';
 
@@ -239,19 +260,26 @@ Daikin.prototype = {
       this._doSendGetRequest(path, (error, response) => {
         if (error) {
           this.log.error('ERROR: Queued request to %s returned error %s', path, error);
+          callback(error);
           done();
           return;
         }
 
         this.log.debug('_queueGetRequest: queued request finished: path: %s', path);
 
-        // actual response callback
-        callback(response);
+        callback(null, response);
         done();
       }, options);
     });
   },
 
+  /**
+   * Perform a GET request, using the cache when possible.
+   *
+   * @param {string} path Full request URL.
+   * @param {(error: Error | null, body?: string) => void} callback Called with the response body or an error.
+   * @param {{ skipQueue?: boolean, skipCache?: boolean }} options Cache behaviour overrides.
+   */
   _doSendGetRequest(path, callback, options) {
     if (this._serveFromCache && this._serveFromCache(path, callback, options)) return;
 
@@ -320,6 +348,14 @@ Daikin.prototype = {
     });
   },
 
+  /**
+   * Return a cached response when valid.
+   *
+   * @param {string} path Cache key (request URL).
+   * @param {(error: Error | null, body?: string) => void} callback Called with the cached body on hit.
+   * @param {{ skipQueue?: boolean, skipCache?: boolean }} options Cache behaviour overrides.
+   * @returns {boolean} True when the callback was satisfied from cache.
+   */
   _serveFromCache(path, callback, options) {
     this.log.debug('_serveFromCache: requesting from cache: path: %s', path);
 
@@ -352,56 +388,93 @@ Daikin.prototype = {
     return true;
   },
 
+  /**
+   * Read and validate a temperature field from `get_sensor_info`.
+   *
+   * @param {'htemp' | 'otemp'} field Sensor field to read.
+   * @param {(error: Error | null, temperature?: number) => void} callback Called with adjusted °C or an error.
+   */
+  _readTemperature(field, callback) {
+    this.log.debug('_readTemperature(%s) using %s', field, this.get_sensor_info);
+    this.sendGetRequest(this.get_sensor_info, (error, body) => {
+      if (error) {
+        return callback(error);
+      }
+
+      const responseValues = this.parseResponse(body);
+      if (responseValues.ret !== 'OK') {
+        return callback(new Error(`Daikin API error: ${responseValues.ret ?? body}`));
+      }
+
+      const rawTemperature = Number.parseFloat(responseValues[field]);
+      if (!Number.isFinite(rawTemperature)) {
+        return callback(new Error(`Invalid temperature (${field}): ${responseValues[field]}`));
+      }
+
+      const adjustedTemperature = rawTemperature + this.temperatureOffset;
+      this.log.debug(
+        'Temperature (raw): %s°, offset: %s°, adjusted: %s°',
+        rawTemperature.toFixed(1),
+        this.temperatureOffset.toFixed(1),
+        adjustedTemperature.toFixed(1)
+      );
+      callback(null, adjustedTemperature);
+    });
+  },
+
+  /**
+   * HomeKit getter for indoor temperature (`htemp`).
+   *
+   * @param {(error: Error | null, temperature?: number) => void} callback HomeKit characteristic callback.
+   */
   getCurrentTemperature(callback) {
-    this.log.debug('getCurrentTemperature using %s', this.get_sensor_info);
-    this.sendGetRequest(this.get_sensor_info, body => {
-      const responseValues = this.parseResponse(body);
-      const rawTemperature = Number.parseFloat(responseValues.htemp);
-      const adjustedTemperature = rawTemperature + this.temperatureOffset;
-      this.log.debug(
-        'Temperature (raw): %s°, offset: %s°, adjusted: %s°',
-        rawTemperature.toFixed(1),
-        this.temperatureOffset.toFixed(1),
-        adjustedTemperature.toFixed(1)
-        );
-      callback(null, adjustedTemperature);
-    });
+    this._readTemperature('htemp', callback);
   },
 
+  /**
+   * HomeKit getter for outdoor temperature (`otemp`).
+   *
+   * @param {(error: Error | null, temperature?: number) => void} callback HomeKit characteristic callback.
+   */
   getCurrentOutsideTemperature(callback) {
-    this.log.debug('getCurrentOutsideTemperature using %s', this.get_sensor_info);
-    this.sendGetRequest(this.get_sensor_info, body => {
-      const responseValues = this.parseResponse(body);
-      const rawTemperature = Number.parseFloat(responseValues.otemp);
-      const adjustedTemperature = rawTemperature + this.temperatureOffset;
-      this.log.debug(
-        'Temperature (raw): %s°, offset: %s°, adjusted: %s°',
-        rawTemperature.toFixed(1),
-        this.temperatureOffset.toFixed(1),
-        adjustedTemperature.toFixed(1)
-        );
-      callback(null, adjustedTemperature);
-    });
+    this._readTemperature('otemp', callback);
   },
 
+  /**
+   * HomeKit identify handler (no-op for Daikin controllers).
+   *
+   * @param {(error: Error | null) => void} callback HomeKit identify callback.
+   */
   identify: function (callback) {
     this.log.info('Identify requested, however there is no way to let your Daikin WIFI module speak up for identification!');
     callback(null);
   },
 
+  /**
+   * @param {(error: Error | null, units?: number) => void} callback HomeKit characteristic callback.
+   */
   getTemperatureDisplayUnits: function (callback) {
     this.log.info('getTemperatureDisplayUnits: Temperature unit is %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits);
     const error = null;
     callback(error, this.temperatureDisplayUnits);
   },
 
+  /**
+   * @param {number} value `Characteristic.TemperatureDisplayUnits` value.
+   * @param {(error: Error | null) => void} callback HomeKit characteristic callback.
+   */
   setTemperatureDisplayUnits: function (value, callback) {
-    this.log('Changing temperature unit from %s to %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits, value);
+    this.log.info('Changing temperature unit from %s to %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits, value);
     this.temperatureDisplayUnits = value;
     const error = null;
     callback(error);
   },
 
+  /**
+   * Build and return HomeKit services exposed by this accessory.
+   *
+   * @returns {import('homebridge').Service[]} Accessory information and temperature sensor services.
+   */
   getServices: function () {
     const informationService = new Service.AccessoryInformation();
 
@@ -436,9 +509,14 @@ Daikin.prototype = {
     return services;
   },
 
+  /** Fetch controller model and firmware revision from the Daikin API (async, fire-and-forget). */
   getModelInfo: function () {
-    // A function to prompt the model information and the firmware revision
-    this.sendGetRequest(this.get_model_info, body => {
+    this.sendGetRequest(this.get_model_info, (error, body) => {
+      if (error) {
+        this.log.error('getModelInfo request failed: %s', error);
+        return;
+      }
+
       const responseValues = this.parseResponse(body);
       this.log.debug('getModelInfo return code %s', responseValues.ret);
       this.log.debug('getModelInfo %s', responseValues.model);
@@ -453,12 +531,17 @@ Daikin.prototype = {
         this.log.warn('Response is %s', body);
       }
     });
-    this.sendGetRequest(this.basic_info, body => {
+    this.sendGetRequest(this.basic_info, (error, body) => {
+      if (error) {
+        this.log.error('getModelInfo basic_info request failed: %s', error);
+        return;
+      }
+
       const responseValues = this.parseResponse(body);
       this.log.debug('getModelInfo for basic info return code %s', responseValues.ret);
       if (responseValues.ret === 'OK') {
         this.firmwareRevision = responseValues.ver;
-        this.log('The firmware version is %s', this.firmwareRevision);
+        this.log.info('The firmware version is %s', this.firmwareRevision);
       } else {
         this.firmwareRevision = 'NOTSUPPORT';
         this.log.error('getModelInfo for basic info: Not connected to a supported Daikin wifi controller!');
@@ -467,6 +550,11 @@ Daikin.prototype = {
   },
 };
 
+/**
+ * Homebridge plugin entry point.
+ *
+ * @param {import('homebridge').API} homebridge Homebridge API instance.
+ */
 module.exports = function (homebridge) {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;

@@ -1,6 +1,6 @@
 {
   "name": "homebridge-daikin-tempsensor-nocloud",
-  "version": "1.4.4",
+  "version": "1.4.6",
   "description": "Provides temperature sensor for HomeKit as plugin for homebridge: https://github.com/nfarina/homebridge",
   "license": "MIT",
   "keywords": [
@@ -42,71 +42,12 @@
   ],
   "main": "src/index.js",
   "scripts": {
-    "lint:json": "eslint --ext .json .",
-    "pretest": "npm run lint:json",
-    "test": "xo"
+    "lint:json": "eslint .",
+    "test": "node --test",
+    "pretest": "npm run lint:json"
   },
   "devDependencies": {
-    "@eslint/json": "^0.14.0",
-    "eslint": "^9.39.1",
-    "xo": "^1.2.3"
-  },
-  "xo": {
-    "rules": {
-      "stylistic/indent-binary-ops": "off",
-      "@stylistic/indent": "off",
-      "@stylistic/no-trailing-spaces": [
-        "error",
-        {
-          "skipBlankLines": true
-        }
-      ],
-      "@stylistic/comma-dangle": "off",
-      "@stylistic/arrow-parens": [
-        "warn",
-        "as-needed"
-      ],
-      "@stylistic/brace-style": "off",
-      "@stylistic/indent-binary-ops": [
-        "warn",
-        2
-      ],
-      "camelcase": "off",
-      "capitalized-comments": "off",
-      "curly": [
-        "error",
-        "multi-or-nest",
-        "consistent"
-      ],
-      "no-mixed-spaces-and-tabs": "warn",
-      "no-unused-vars": "warn",
-      "no-useless-escape": "warn",
-      "no-use-before-define": [
-        "error",
-        {
-          "classes": false
-        }
-      ],
-      "no-var": "warn",
-      "object-shorthand": [
-        "off",
-        "always",
-        {
-          "ignoreConstructors": true
-        }
-      ],
-      "prefer-arrow-callback": "warn",
-      "prefer-destructuring": "warn",
-      "promise/prefer-await-to-then": "off",
-      "quotes": "off",
-      "quote-props": "off",
-      "unicorn/expiring-todo-comments": "off",
-      "unicorn/no-anonymous-default-export": "off",
-      "unicorn/prefer-module": "off",
-      "unicorn/prefer-string-replace-all": "warn",
-      "unicorn/prefer-switch": "warn",
-      "unicorn/prefer-ternary": "off",
-      "unicorn/prevent-abbreviations": "off"
-    }
+    "@eslint/json": "^2.0.0",
+    "eslint": "^10.0.0"
   }
 }

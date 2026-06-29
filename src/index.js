@@ -1,10 +1,3 @@
-/* eslint no-unused-vars: ["warn", {"args": "none"}  ] */
-/* eslint curly: "off" */
-/* eslint logical-assignment-operators: ["error", "always", { enforceForIfStatements: false }] */
-/* eslint quotes: ["error", "single", { "avoidEscape": true }] */
-/* eslint quote-props: ["error", "consistent-as-needed"] */
-/* eslint no-unused-expressions: "warn" */
-
 let Service;
 let Characteristic;
 const https = require('node:https');
@@ -15,14 +8,11 @@ const superagent = require('superagent');
 const packageFile = require('../package.json');
 const Cache = require('./cache.js');
 const Queue = require('./queue.js');
-// const Throttle = require('superagent-throttle'); // optional, kept for parity if needed
+const parseResponse = require('./parse-response.js');
 
-// --- BEGIN: OpenSSL / Agent helpers (added) ---
-/* eslint-disable no-bitwise */
 const SECURE_OPS
   = ((crypto.constants && crypto.constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION) || 0)
     | ((crypto.constants && crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT) || 0);
-/* eslint-enable no-bitwise */
 
 function isOpenSSL3() {
   return (process.versions.openssl || '').startsWith('3.');
@@ -66,7 +56,6 @@ function getDefaultHttpAgent() {
 
   return DEFAULT_HTTP_AGENT;
 }
-// --- END: OpenSSL / Agent helpers ---
 
 function Daikin(log, config) {
   this.log = log;
@@ -83,7 +72,7 @@ function Daikin(log, config) {
 
   if (config.outsidemode === undefined) {
     this.log.error('ERROR: your configuration is missing the parameter "outsidemode"');
-    this.outsidemode = true; // which is the default of the plugin before introducing this option.
+    this.outsidemode = true;
   } else {
     this.outsidemode = config.outsidemode;
     this.log.debug('Config: Outsidemode is %s', config.outsidemode);
@@ -100,71 +89,41 @@ function Daikin(log, config) {
     this.log.debug('Config: apiroute is %s', config.apiroute);
   }
 
-    if (config.temperatureOffset === undefined) {
+  if (config.temperatureOffset === undefined) {
     this.log.warn('WARNING: your configuration is missing the parameter "temperatureOffset", using default zero');
     this.temperatureOffset = 0;
-    this.log.debug('Config: temperatureOffset is %s', this.temperatureOffset);
   } else {
-    this.log.debug('Config: temperatureOffset is %s', config.temperatureOffset);
     this.temperatureOffset = config.temperatureOffset;
   }
 
   if (config.response === undefined) {
-    this.log.warn('WARNING: your configuration is missing the parameter "response", using default');
     this.response = 5000;
-    this.log.debug('Config: response is %s', this.response);
   } else {
-    this.log.debug('Config: response is %s', config.response);
     this.response = config.response;
   }
 
   if (config.deadline === undefined) {
-    this.log.warn('WARNING: your configuration is missing the parameter "deadline", using default');
     this.deadline = 10_000;
-    this.log.debug('Config: deadline is %s', this.deadline);
   } else {
-    this.log.debug('Config: deadline is %s', this.deadline);
     this.deadline = config.deadline;
   }
 
   if (config.retries === undefined) {
-    this.log.warn('WARNING: your configuration is missing the parameter "retries", using default of 5 retries');
     this.retries = 3;
-    this.log.debug('Config: retries is %s', this.retries);
   } else {
-    this.log.debug('Config: retries is %s', config.retries);
     this.retries = config.retries;
   }
 
   if (config.system === undefined) {
-    this.log.warn('ERROR: your configuration is missing the parameter "system", using default');
     this.system = 'Default';
-    this.log.debug('Config: system is %s', this.system);
   } else {
-    this.log.debug('Config: system is %s', config.system);
     this.system = config.system;
   }
 
-  if (config.OpenSSL3 === undefined || config.OpenSSL3 === false)
-    this.OpenSSL3 = false;
-  else
-    this.OpenSSL3 = true;
-
-  if (config.uuid === undefined)
-    this.uuid = '';
-  else
-    this.uuid = config.uuid;
+  this.OpenSSL3 = config.OpenSSL3 === true;
+  this.uuid = config.uuid === undefined ? '' : config.uuid;
 
   switch (this.system) {
-    case 'Default': {
-      this.get_sensor_info = this.apiroute + '/aircon/get_sensor_info';
-      this.get_control_info = this.apiroute + '/aircon/get_control_info';
-      this.get_model_info = this.apiroute + '/aircon/get_model_info';
-      this.set_control_info = this.apiroute + '/aircon/set_control_info';
-      this.basic_info = this.apiroute + '/common/basic_info';
-      break;
-    }
-
     case 'Skyfi': {
       this.get_sensor_info = this.apiroute + '/skyfi/aircon/get_sensor_info';
       this.get_control_info = this.apiroute + '/skyfi/aircon/get_control_info';
@@ -184,67 +143,29 @@ function Daikin(log, config) {
     }
   }
 
-  this.log.debug('Get sensor info %s', this.get_sensor_info);
-  this.log.debug('Get control %s', this.get_control_info);
-  this.log.debug('Get model info %s', this.get_model_info);
-  this.log.debug('Get basic info %s', this.basic_info);
-
   this.firmwareRevision = packageFile.version;
-
   this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
-
   this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
-
-  this.log.info('******************************************************************************');
-  this.log.info('  homebridge-daikin-tempsensor-nocloud version ' + packageFile.version);
-  this.log.info('  GitHub: https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud');
-  this.log.info('******************************************************************************');
-  this.log.info('accessory name: ' + this.name);
-  this.log.info('accessory ip: ' + this.apiIP);
-  this.log.debug('system: ' + this.system);
-  this.log.debug('Debug mode is enabled');
-
   this.temperatureService = new Service.TemperatureSensor(this.name);
 }
 
 Daikin.prototype = {
-  parseResponse(response) {
-    const vals = {};
-    if (response) {
-      const items = response.split(',');
-      const length = items.length;
-      for (let i = 0; i < length; i++) {
-        const keyValue = items[i].split('=');
-        vals[keyValue[0]] = keyValue[1];
-      }
-    }
-
-    return vals;
-  },
+  parseResponse,
 
   sendGetRequest(path, callback, options) {
-    this.log.debug('sendGetRequest: attempting request: path: %s', path);
-
     this._queueGetRequest(path, callback, options || {});
   },
 
   _queueGetRequest(path, callback, options) {
     const method = options.skipQueue ? 'prepend' : 'append';
 
-    this.log.debug(`queuing (${method}) request: path: %s`, path);
-
     this.queue[method](done => {
-      this.log.debug('_queueGetRequest: executing queued request: path: %s', path);
-
       this._doSendGetRequest(path, (error, response) => {
         if (error) {
-          this.log.error('ERROR: Queued request to %s returned error %s', path, error);
           callback(error);
           done();
           return;
         }
-
-        this.log.debug('_queueGetRequest: queued request finished: path: %s', path);
 
         callback(null, response);
         done();
@@ -255,15 +176,10 @@ Daikin.prototype = {
   _doSendGetRequest(path, callback, options) {
     if (this._serveFromCache && this._serveFromCache(path, callback, options)) return;
 
-    this.log.debug('_doSendGetRequest: requesting from API: path: %s', path);
-
     let request = superagent
       .get(path)
       .retry(this.retries)
-      .timeout({
-        response: this.response,
-        deadline: this.deadline,
-      })
+      .timeout({response: this.response, deadline: this.deadline})
       .set('User-Agent', 'superagent')
       .set('Host', this.apiIP);
 
@@ -271,7 +187,6 @@ Daikin.prototype = {
       request = request.set('X-Daikin-uuid', this.uuid);
     }
 
-    // Choose agent based on URL protocol and OpenSSL version to avoid .disableTLSCerts issues
     let urlProtocol = 'https:';
     try {
       urlProtocol = new URL(path).protocol;
@@ -288,72 +203,38 @@ Daikin.prototype = {
         request = request.agent(getDefaultAgent());
       }
     } else {
-      // plain http
       request = request.agent(getDefaultHttpAgent());
     }
 
     request.end((error, response) => {
       if (error) {
-        if (error.timeout) {/* timed out */}
-        else if (error.code === 'ECONNRESET') {
-          this.log.debug('_doSendGetRequest: eConnreset filtered');
-        } else {
-          this.log.error('_doSendGetRequest: ERROR: API request to %s returned error %s', path, error);
-        }
-
         return callback && callback(error);
       }
 
-      // Prefer text when available (keeps compatibility with parseResponse callers)
       const body = response && (response.text ?? (typeof response.body === 'string' ? response.body : JSON.stringify(response.body)));
-      try {
-        if (this.cache && typeof this.cache.set === 'function') {
-          this.log.debug('_doSendGetRequest: set cache: path: %s', path);
-          this.cache.set(path, body);
-        }
-      } catch (error) {
-        this.log.debug('_doSendGetRequest: cache set failed: %s', error.message || error);
+      if (this.cache && typeof this.cache.set === 'function') {
+        this.cache.set(path, body);
       }
 
-      this.log.debug('_doSendGetRequest: response from API: %s', body);
       return callback && callback(null, body);
     });
   },
 
   _serveFromCache(path, callback, options) {
-    this.log.debug('_serveFromCache: requesting from cache: path: %s', path);
-
-    if (options.skipCache) {
-      this.log.debug('_serveFromCache: cache SKIP: path: %s', path);
-      return false;
-    }
-
-    if (!this.cache.has(path)) {
-      this.log.debug('_serveFromCache: cache MISS: path: %s', path);
-      return false;
-    }
-
-    if (this.cache.expired(path)) {
-      this.log.debug('_serveFromCache: cache EXPIRED: path: %s', path);
+    if (options.skipCache || !this.cache.has(path) || this.cache.expired(path)) {
       return false;
     }
 
     const cachedResponse = this.cache.get(path);
-
     if (cachedResponse === undefined) {
-      this.log.debug('_serveFromCache: cache EMPTY: path: %s', path);
       return false;
     }
-
-    this.log.debug('_serveFromCache: cache HIT: path: %s', path);
-    this.log.debug('_serveFromCache: responding from cache: %s', cachedResponse);
 
     callback(null, cachedResponse);
     return true;
   },
 
   _readTemperature(field, callback) {
-    this.log.debug('_readTemperature(%s) using %s', field, this.get_sensor_info);
     this.sendGetRequest(this.get_sensor_info, (error, body) => {
       if (error) {
         return callback(error);
@@ -369,14 +250,7 @@ Daikin.prototype = {
         return callback(new Error(`Invalid temperature (${field}): ${responseValues[field]}`));
       }
 
-      const adjustedTemperature = rawTemperature + this.temperatureOffset;
-      this.log.debug(
-        'Temperature (raw): %s°, offset: %s°, adjusted: %s°',
-        rawTemperature.toFixed(1),
-        this.temperatureOffset.toFixed(1),
-        adjustedTemperature.toFixed(1)
-      );
-      callback(null, adjustedTemperature);
+      callback(null, rawTemperature + this.temperatureOffset);
     });
   },
 
@@ -388,25 +262,20 @@ Daikin.prototype = {
     this._readTemperature('otemp', callback);
   },
 
-  identify: function (callback) {
-    this.log.info('Identify requested, however there is no way to let your Daikin WIFI module speak up for identification!');
+  identify(callback) {
     callback(null);
   },
 
-  getTemperatureDisplayUnits: function (callback) {
-    this.log.info('getTemperatureDisplayUnits: Temperature unit is %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits);
-    const error = null;
-    callback(error, this.temperatureDisplayUnits);
+  getTemperatureDisplayUnits(callback) {
+    callback(null, this.temperatureDisplayUnits);
   },
 
-  setTemperatureDisplayUnits: function (value, callback) {
-    this.log.info('Changing temperature unit from %s to %s. 0=Celsius, 1=Fahrenheit.', this.temperatureDisplayUnits, value);
+  setTemperatureDisplayUnits(value, callback) {
     this.temperatureDisplayUnits = value;
-    const error = null;
-    callback(error);
+    callback(null);
   },
 
-  getServices: function () {
+  getServices() {
     const informationService = new Service.AccessoryInformation();
 
     this.getModelInfo();
@@ -417,65 +286,40 @@ Daikin.prototype = {
       .setCharacteristic(Characteristic.FirmwareRevision, this.firmwareRevision)
       .setCharacteristic(Characteristic.SerialNumber, this.name);
 
-    if (this.outsidemode === true) {
-      this.temperatureService
-        .getCharacteristic(Characteristic.CurrentTemperature)
-        .setProps({
-          minValue: Number.parseFloat('-50'),
-          maxValue: Number.parseFloat('100'),
-        })
-        .on('get', this.getCurrentOutsideTemperature.bind(this));
-    } else {
-      this.temperatureService
-        .getCharacteristic(Characteristic.CurrentTemperature)
-        .setProps({
-          minValue: Number.parseFloat('-50'),
-          maxValue: Number.parseFloat('100'),
-        })
-        .on('get', this.getCurrentTemperature.bind(this));
-    }
+    const temperatureGetter = this.outsidemode
+      ? this.getCurrentOutsideTemperature.bind(this)
+      : this.getCurrentTemperature.bind(this);
 
-    // let services;
-    const services = [informationService, this.temperatureService];
-    return services;
+    this.temperatureService
+      .getCharacteristic(Characteristic.CurrentTemperature)
+      .setProps({minValue: -50, maxValue: 100})
+      .on('get', temperatureGetter);
+
+    return [informationService, this.temperatureService];
   },
 
-  getModelInfo: function () {
-    // A function to prompt the model information and the firmware revision
+  getModelInfo() {
     this.sendGetRequest(this.get_model_info, (error, body) => {
       if (error) {
-        this.log.error('getModelInfo request failed: %s', error);
         return;
       }
 
       const responseValues = this.parseResponse(body);
-      this.log.debug('getModelInfo return code %s', responseValues.ret);
-      this.log.debug('getModelInfo %s', responseValues.model);
-      if (responseValues.ret === 'OK') {
-        this.log.debug('Model reported: %s', responseValues.model);
-        if (responseValues.model !== 'NOTSUPPORT') {
-          this.model = responseValues.model;
-          this.log.info('Your Daikin WIFI controller model: %s', responseValues.model);
-        }
-      } else {
-        this.log.error('Not connected to a supported Daikin wifi controller!');
-        this.log.warn('Response is %s', body);
+      if (responseValues.ret === 'OK' && responseValues.model !== 'NOTSUPPORT') {
+        this.model = responseValues.model;
       }
     });
+
     this.sendGetRequest(this.basic_info, (error, body) => {
       if (error) {
-        this.log.error('getModelInfo basic_info request failed: %s', error);
         return;
       }
 
       const responseValues = this.parseResponse(body);
-      this.log.debug('getModelInfo for basic info return code %s', responseValues.ret);
       if (responseValues.ret === 'OK') {
         this.firmwareRevision = responseValues.ver;
-        this.log.info('The firmware version is %s', this.firmwareRevision);
       } else {
         this.firmwareRevision = 'NOTSUPPORT';
-        this.log.error('getModelInfo for basic info: Not connected to a supported Daikin wifi controller!');
       }
     });
   },

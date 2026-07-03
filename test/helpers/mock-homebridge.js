@@ -19,23 +19,35 @@ function createMockLog() {
 function createDaikin(config = {}) {
   let Accessory;
 
+  class MockService {
+    constructor(name) {
+      this.name = name;
+    }
+
+    getCharacteristic() {
+      return {
+        setProps() {
+          return this;
+        },
+        on() {
+          return this;
+        },
+        setCharacteristic() {
+          return this;
+        },
+      };
+    }
+
+    setCharacteristic() {
+      return this;
+    }
+  }
+
   const homebridge = {
     hap: {
-      Service: class MockService {
-        constructor(name) {
-          this.name = name;
-        }
-
-        getCharacteristic() {
-          return {
-            setProps() {
-              return this;
-            },
-            on() {
-              return this;
-            },
-          };
-        }
+      Service: {
+        TemperatureSensor: MockService,
+        AccessoryInformation: MockService,
       },
       Characteristic: {
         TemperatureDisplayUnits: {CELSIUS: 0},

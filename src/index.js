@@ -16,6 +16,7 @@ const packageFile = require('../package.json');
 const Cache = require('./cache.js');
 const Queue = require('./queue.js');
 const parseResponse = require('./parse-response.js');
+const {resolveControllerHost, replaceHostInUrl} = require('./host-resolve.js');
 // const Throttle = require('superagent-throttle'); // optional, kept for parity if needed
 
 // --- BEGIN: OpenSSL / Agent helpers (added) ---
@@ -259,8 +260,15 @@ Daikin.prototype = {
 
       this._doSendGetRequest(path, (error, response) => {
         if (error) {
-          this.log.error('ERROR: Queued request to %s returned error %s', path, error);
-          callback(error);
+          if (error.code === 'ECONNRESET') {
+            this.log.debug('_queueGetRequest: requeueing request after econnreset');
+            options.skipQueue = true;
+            this._queueGetRequest(path, callback, options);
+          } else {
+            this.log.error('ERROR: Queued request to %s returned error %s', path, error);
+            callback(error);
+          }
+
           done();
           return;
         }
@@ -280,71 +288,86 @@ Daikin.prototype = {
    * @param {(error: Error | null, body?: string) => void} callback Called with the response body or an error.
    * @param {{ skipQueue?: boolean, skipCache?: boolean }} options Cache behaviour overrides.
    */
+  _resolveHost(callback) {
+    resolveControllerHost(this.apiIP)
+      .then(address => {
+        if (address !== this.apiIP) {
+          this.log.debug('Resolved %s to %s', this.apiIP, address);
+        }
+
+        callback(address);
+      })
+      .catch(error => {
+        this.log.warn('DNS lookup failed for %s: %s, using hostname as-is', this.apiIP, error.message);
+        callback(this.apiIP);
+      });
+  },
+
   _doSendGetRequest(path, callback, options) {
     if (this._serveFromCache && this._serveFromCache(path, callback, options)) return;
 
-    this.log.debug('_doSendGetRequest: requesting from API: path: %s', path);
+    this._resolveHost(resolvedIP => {
+      const resolvedPath = replaceHostInUrl(path, resolvedIP);
+      this.log.debug('_doSendGetRequest: requesting from API: path: %s', resolvedPath);
 
-    let request = superagent
-      .get(path)
-      .retry(this.retries)
-      .timeout({
-        response: this.response,
-        deadline: this.deadline,
-      })
-      .set('User-Agent', 'superagent')
-      .set('Host', this.apiIP);
+      let request = superagent
+        .get(resolvedPath)
+        .retry(this.retries)
+        .timeout({
+          response: this.response,
+          deadline: this.deadline,
+        })
+        .set('User-Agent', 'superagent')
+        .set('Host', resolvedIP);
 
-    if (this.uuid !== '') {
-      request = request.set('X-Daikin-uuid', this.uuid);
-    }
-
-    // Choose agent based on URL protocol and OpenSSL version to avoid .disableTLSCerts issues
-    let urlProtocol = 'https:';
-    try {
-      urlProtocol = new URL(path).protocol;
-    } catch {
-      urlProtocol = 'https:';
-    }
-
-    if (urlProtocol === 'https:') {
-      if (isOpenSSL3()) {
-        request = request.agent(getLegacyAgent());
-      } else if (typeof request.disableTLSCerts === 'function') {
-        request = request.disableTLSCerts();
-      } else {
-        request = request.agent(getDefaultAgent());
-      }
-    } else {
-      // plain http
-      request = request.agent(getDefaultHttpAgent());
-    }
-
-    request.end((error, response) => {
-      if (error) {
-        if (error.timeout) {/* timed out */}
-        else if (error.code === 'ECONNRESET') {
-          this.log.debug('_doSendGetRequest: eConnreset filtered');
-        } else {
-          this.log.error('_doSendGetRequest: ERROR: API request to %s returned error %s', path, error);
-        }
-
-        return callback && callback(error);
+      if (this.uuid !== '') {
+        request = request.set('X-Daikin-uuid', this.uuid);
       }
 
-      // Prefer text when available (keeps compatibility with parseResponse callers)
-      const body = response && (response.text ?? (typeof response.body === 'string' ? response.body : JSON.stringify(response.body)));
+      let urlProtocol = 'https:';
       try {
-        if (this.cache && typeof this.cache.set === 'function') {
-          this.log.debug('_doSendGetRequest: set cache: path: %s', path);
-          this.cache.set(path, body);
-        }
-      } catch (error) {
-        this.log.debug('_doSendGetRequest: cache set failed: %s', error.message || error);
+        urlProtocol = new URL(resolvedPath).protocol;
+      } catch {
+        urlProtocol = 'https:';
       }
 
-      this.log.debug('_doSendGetRequest: response from API: %s', body);
-      return callback && callback(null, body);
+      if (urlProtocol === 'https:') {
+        if (isOpenSSL3()) {
+          request = request.agent(getLegacyAgent());
+        } else if (typeof request.disableTLSCerts === 'function') {
+          request = request.disableTLSCerts();
+        } else {
+          request = request.agent(getDefaultAgent());
+        }
+      } else {
+        request = request.agent(getDefaultHttpAgent());
+      }
+
+      request.end((error, response) => {
+        if (error) {
+          if (error.timeout) {/* timed out */}
+          else if (error.code === 'ECONNRESET') {
+            this.log.debug('_doSendGetRequest: eConnreset filtered');
+          } else {
+            this.log.error('_doSendGetRequest: ERROR: API request to %s returned error %s', resolvedPath, error);
+          }
+
+          return callback && callback(error);
+        }
+
+        const body = response && (response.text ?? (typeof response.body === 'string' ? response.body : JSON.stringify(response.body)));
+        try {
+          if (this.cache && typeof this.cache.set === 'function') {
+            this.log.debug('_doSendGetRequest: set cache: path: %s', path);
+            this.cache.set(path, body);
+          }
+        } catch (error) {
+          this.log.debug('_doSendGetRequest: cache set failed: %s', error.message || error);
+        }
+
+        this.log.debug('_doSendGetRequest: response from API: %s', body);
+        return callback && callback(null, body);
+      });
     });
   },
 

@@ -37,3 +37,10 @@ node_modules
 
 # Local dev sync script (machine-specific Docker paths)
 scripts/sync-to-homebridge.sh
+
+# Local Homebridge dev runtime
+test/.homebridge/
+test/accessories/
+test/cachedAccessories
+test/persist/
+test/config.live.json

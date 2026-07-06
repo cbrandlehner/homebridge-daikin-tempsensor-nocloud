@@ -29,6 +29,44 @@ function isOpenSSL3() {
   return (process.versions.openssl || '').startsWith('3.');
 }
 
+/**
+ * @param {import('superagent').SuperAgentRequest} request
+ * @returns {import('superagent').SuperAgentRequest}
+ */
+function applyHttpsTls(request) {
+  if (isOpenSSL3()) {
+    return request.agent(getLegacyAgent());
+  }
+
+  if (typeof request.disableTLSCerts === 'function') {
+    return request.disableTLSCerts();
+  }
+
+  return request.agent(getDefaultAgent());
+}
+
+/**
+ * @param {import('homebridge').Logger} log
+ * @param {string} [apiroute]
+ */
+function logHttpsTlsPath(log, apiroute) {
+  if (!apiroute || !apiroute.startsWith('https://')) {
+    log.debug('TLS: apiroute uses HTTP — plain HTTP agent, no TLS');
+    return;
+  }
+
+  const openssl = process.versions.openssl || 'unknown';
+  if (isOpenSSL3()) {
+    log.info(
+      'TLS: HTTPS apiroute — using legacy TLS agent (Node OpenSSL %s; legacy renegotiation enabled automatically)',
+      openssl,
+    );
+    return;
+  }
+
+  log.info('TLS: HTTPS apiroute — using standard HTTPS agent (Node OpenSSL %s)', openssl);
+}
+
 let LEGACY_AGENT = null;
 let DEFAULT_AGENT = null;
 let DEFAULT_HTTP_AGENT = null;
@@ -85,7 +123,6 @@ function getDefaultHttpAgent() {
  * @param {number} [config.deadline] Superagent deadline timeout in milliseconds.
  * @param {number} [config.retries] Number of request retries on failure.
  * @param {'Default' | 'Skyfi'} [config.system] API path prefix for the controller type.
- * @param {boolean} [config.OpenSSL3] Force legacy TLS agent even when OpenSSL is not 3.x.
  * @param {string} [config.uuid] Optional `X-Daikin-uuid` header value.
  * @constructor
  */
@@ -166,11 +203,6 @@ function Daikin(log, config) {
     this.system = config.system;
   }
 
-  if (config.OpenSSL3 === undefined || config.OpenSSL3 === false)
-    this.OpenSSL3 = false;
-  else
-    this.OpenSSL3 = true;
-
   if (config.uuid === undefined)
     this.uuid = '';
   else
@@ -223,6 +255,7 @@ function Daikin(log, config) {
   this.log.info('accessory name: ' + this.name);
   this.log.info('accessory ip: ' + this.apiIP);
   this.log.debug('system: ' + this.system);
+  logHttpsTlsPath(this.log, config.apiroute);
   this.log.debug('Debug mode is enabled');
 
   this.temperatureService = new Service.TemperatureSensor(this.name);
@@ -332,13 +365,7 @@ Daikin.prototype = {
       }
 
       if (urlProtocol === 'https:') {
-        if (isOpenSSL3()) {
-          request = request.agent(getLegacyAgent());
-        } else if (typeof request.disableTLSCerts === 'function') {
-          request = request.disableTLSCerts();
-        } else {
-          request = request.agent(getDefaultAgent());
-        }
+        request = applyHttpsTls(request);
       } else {
         request = request.agent(getDefaultHttpAgent());
       }

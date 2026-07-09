@@ -1,6 +1,6 @@
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 
-![node](https://img.shields.io/node/v/homebridge-daikin-tempsensor-nocloud)
+[![node](https://img.shields.io/badge/node-22%20%7C%2024-brightgreen)](https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/blob/master/package.json)
 [![npm](https://img.shields.io/npm/dt/homebridge-daikin-tempsensor-nocloud.svg)](https://www.npmjs.com/package/homebridge-daikin-tempsensor-nocloud)
 [![npm](https://img.shields.io/npm/l/homebridge-daikin-tempsensor-nocloud.svg)](https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/blob/master/LICENSE)
 [![npm version](https://badge.fury.io/js/homebridge-daikin-tempsensor-nocloud.svg)](https://badge.fury.io/js/homebridge-daikin-tempsensor-nocloud)
@@ -71,7 +71,7 @@ ret=PARAM NG,msg=404 Not Found
 
 Some models require requests via `https` containing a registered client token.
 
-**TLS / OpenSSL 3:** No configuration is required. On Node.js 18+ (linked against OpenSSL 3.x), the plugin automatically selects a legacy TLS agent for HTTPS connections to Daikin controllers (legacy renegotiation support). At startup, Homebridge logs a line such as `TLS: HTTPS apiroute — using legacy TLS agent` when this applies. There is no `OpenSSL3` setting in the plugin config.
+**TLS / OpenSSL 3:** No configuration is required. On Node.js 22+ (linked against OpenSSL 3.x), the plugin automatically selects a legacy TLS agent for HTTPS connections to Daikin controllers (legacy renegotiation support). At startup, Homebridge logs a line such as `TLS: HTTPS apiroute — using legacy TLS agent` when this applies. There is no `OpenSSL3` setting in the plugin config.
 
 It is necessary to register a client token with each device.
 The same token may be registered with multiple devices.

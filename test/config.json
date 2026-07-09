@@ -1,0 +1,23 @@
+{
+  "bridge": {
+    "name": "Homebridge Dev",
+    "username": "CC:22:3E:E3:CE:31",
+    "port": 51827,
+    "pin": "031-45-155"
+  },
+  "description": "Local development config for homebridge-daikin-tempsensor-nocloud",
+  "accessories": [
+    {
+      "accessory": "Daikin-Temperature",
+      "name": "Dev Indoor Sensor",
+      "apiroute": "http://127.0.0.1:18765",
+      "outsidemode": false,
+      "temperatureOffset": 0,
+      "system": "Default",
+      "response": 2000,
+      "deadline": 60000,
+      "retries": 2
+    }
+  ],
+  "platforms": []
+}

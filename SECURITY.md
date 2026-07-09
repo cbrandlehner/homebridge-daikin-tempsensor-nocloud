@@ -31,7 +31,7 @@ Security updates (bug fixes affecting security) are provided for the latest rele
 This plugin communicates directly with your Daikin Wi-Fi controller over the local network:
 
 - **Keep your home network secure** — Use strong Wi-Fi passwords, network segmentation, and firewall rules to prevent unauthorized access.
-- **HTTPS support**: When using HTTPS, register a client token (UUID) properly using the device's 13-digit key. Avoid skipping certificate verification in production.
+- **HTTPS support**: When using HTTPS, register a client token (UUID) properly using the device's 13-digit key.
 - **No cloud dependency**: All communication is local, reducing external attack surface — but ensure the device itself is not exposed to the internet.
 - Run Homebridge with least-privilege (non-root user) where possible.
 

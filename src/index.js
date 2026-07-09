@@ -39,6 +39,7 @@ function applyHttpsTls(request) {
   }
 
   if (typeof request.disableTLSCerts === 'function') {
+    // codeql[js/disabling-certificate-validation]: Daikin controllers use self-signed LAN certs.
     return request.disableTLSCerts();
   }
 
@@ -76,6 +77,7 @@ function getLegacyAgent() {
   if (!LEGACY_AGENT) {
     LEGACY_AGENT = new https.Agent({
       keepAlive: true,
+      // codeql[js/disabling-certificate-validation]: Daikin controllers use self-signed LAN certs.
       rejectUnauthorized: false,
       minVersion: 'TLSv1.2',
       maxVersion: 'TLSv1.2',
@@ -91,6 +93,7 @@ function getDefaultAgent() {
   if (!DEFAULT_AGENT) {
     DEFAULT_AGENT = new https.Agent({
       keepAlive: true,
+      // codeql[js/disabling-certificate-validation]: Daikin controllers use self-signed LAN certs.
       rejectUnauthorized: false,
     });
   }

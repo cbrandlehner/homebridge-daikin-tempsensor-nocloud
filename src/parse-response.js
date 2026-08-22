@@ -22,4 +22,21 @@ function parseResponse(response) {
   return vals;
 }
 
+/**
+ * Map a config `temperature_unit` value to HomeKit TemperatureDisplayUnits.
+ * Invalid or missing values default to Celsius to avoid NaN in HomeKit.
+ *
+ * @param {unknown} value Configured unit (`C`, `F`, 0, 1, …).
+ * @param {{CELSIUS: number, FAHRENHEIT: number}} units HomeKit enum.
+ * @returns {number}
+ */
+function parseTemperatureDisplayUnits(value, units) {
+  if (value === units.FAHRENHEIT || value === 1 || value === '1' || value === 'F' || value === 'f') {
+    return units.FAHRENHEIT;
+  }
+
+  return units.CELSIUS;
+}
+
 module.exports = parseResponse;
+module.exports.parseTemperatureDisplayUnits = parseTemperatureDisplayUnits;

@@ -115,6 +115,15 @@ Make sure to use the correct token if a different token has been registered with
 
 # Debugging and Testing
 
+For local development without a physical Daikin controller, start the mock HTTP server and then Homebridge:
+
+```
+npm run mock:daikin
+npm run dev
+```
+
+The mock server listens on `http://127.0.0.1:18765` and answers `get_sensor_info`, `get_model_info`, and `basic_info`. To point Homebridge at a real controller instead, copy `test/config.live.json.example` to `test/config.live.json`, set `apiroute`, and run `npm run dev:live`.
+
 This plugins code makes heavy use of debug output. Normally, this debug output is not visible on the [homebridge](https://github.com/nfarina/homebridge) console.
 As explained in the [Homebridge troubleshooting documentation](https://github.com/nfarina/homebridge/wiki/Basic-Troubleshooting) you should start [homebridge](https://github.com/nfarina/homebridge) like this to see the debug output:
 

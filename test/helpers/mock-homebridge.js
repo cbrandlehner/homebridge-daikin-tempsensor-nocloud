@@ -50,7 +50,7 @@ function createDaikin(config = {}) {
         AccessoryInformation: MockService,
       },
       Characteristic: {
-        TemperatureDisplayUnits: {CELSIUS: 0},
+        TemperatureDisplayUnits: {CELSIUS: 0, FAHRENHEIT: 1},
         TargetHeatingCoolingState: {AUTO: 0},
         Manufacturer: 'Manufacturer',
         Model: 'Model',

@@ -16,8 +16,8 @@ const packageFile = require('../package.json');
 const Cache = require('./cache.js');
 const Queue = require('./queue.js');
 const parseResponse = require('./parse-response.js');
+const {parseTemperatureDisplayUnits} = parseResponse;
 const {resolveControllerHost, replaceHostInUrl} = require('./host-resolve.js');
-// const Throttle = require('superagent-throttle'); // optional, kept for parity if needed
 
 // --- BEGIN: OpenSSL / Agent helpers (added) ---
 const SECURE_OPS
@@ -122,6 +122,7 @@ function getDefaultHttpAgent() {
  * @param {boolean} [config.outsidemode] Read outdoor (`otemp`) instead of indoor (`htemp`) temperature.
  * @param {string} [config.apiroute] Base URL of the Daikin controller (e.g. `http://192.168.1.88`).
  * @param {number} [config.temperatureOffset] Degrees added to the reported temperature.
+ * @param {'C' | 'F'} [config.temperature_unit] Display unit for logs and HomeKit (`C` or `F`).
  * @param {number} [config.response] Superagent response timeout in milliseconds.
  * @param {number} [config.deadline] Superagent deadline timeout in milliseconds.
  * @param {number} [config.retries] Number of request retries on failure.
@@ -161,13 +162,28 @@ function Daikin(log, config) {
     this.log.debug('Config: apiroute is %s', config.apiroute);
   }
 
-    if (config.temperatureOffset === undefined) {
+  if (config.temperatureOffset === undefined) {
     this.log.warn('WARNING: your configuration is missing the parameter "temperatureOffset", using default zero');
     this.temperatureOffset = 0;
     this.log.debug('Config: temperatureOffset is %s', this.temperatureOffset);
   } else {
     this.log.debug('Config: temperatureOffset is %s', config.temperatureOffset);
     this.temperatureOffset = config.temperatureOffset;
+  }
+
+  if (config.temperature_unit === undefined) {
+    this.log.warn('WARNING: your configuration is missing the parameter "temperature_unit", using Celsius');
+    this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
+  } else {
+    this.temperatureDisplayUnits = parseTemperatureDisplayUnits(
+      config.temperature_unit,
+      Characteristic.TemperatureDisplayUnits,
+    );
+    this.log.debug(
+      'Config: temperature_unit is %s (HomeKit value: %s)',
+      config.temperature_unit,
+      this.temperatureDisplayUnits,
+    );
   }
 
   if (config.response === undefined) {
@@ -190,7 +206,7 @@ function Daikin(log, config) {
 
   if (config.retries === undefined) {
     this.log.warn('WARNING: your configuration is missing the parameter "retries", using default of 5 retries');
-    this.retries = 3;
+    this.retries = 5;
     this.log.debug('Config: retries is %s', this.retries);
   } else {
     this.log.debug('Config: retries is %s', config.retries);
@@ -246,8 +262,6 @@ function Daikin(log, config) {
   this.log.debug('Get basic info %s', this.basic_info);
 
   this.firmwareRevision = packageFile.version;
-
-  this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
 
   this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
 

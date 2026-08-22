@@ -5,13 +5,14 @@
     "port": 51827,
     "pin": "031-45-155"
   },
-  "description": "Local development config for homebridge-daikin-tempsensor-nocloud",
+  "description": "Local development config for homebridge-daikin-tempsensor-nocloud. Start the mock server first: npm run mock:daikin",
   "accessories": [
     {
       "accessory": "Daikin-Temperature",
       "name": "Dev Indoor Sensor",
       "apiroute": "http://127.0.0.1:18765",
       "outsidemode": false,
+      "temperature_unit": "C",
       "temperatureOffset": 0,
       "system": "Default",
       "response": 2000,

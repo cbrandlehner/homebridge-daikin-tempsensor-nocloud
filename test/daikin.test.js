@@ -74,3 +74,21 @@ test('Skyfi system builds skyfi API routes', () => {
   assert.equal(daikin.get_sensor_info, 'https://192.168.1.77/skyfi/aircon/get_sensor_info');
   assert.equal(daikin.basic_info, 'https://192.168.1.77/skyfi/common/basic_info');
 });
+
+test('temperature_unit F maps to HomeKit Fahrenheit', () => {
+  const daikin = createDaikin({temperature_unit: 'F'});
+
+  assert.equal(daikin.temperatureDisplayUnits, 1);
+});
+
+test('missing temperature_unit defaults to Celsius', () => {
+  const daikin = createDaikin();
+
+  assert.equal(daikin.temperatureDisplayUnits, 0);
+});
+
+test('missing retries uses the documented default of 5', () => {
+  const daikin = createDaikin();
+
+  assert.equal(daikin.retries, 5);
+});

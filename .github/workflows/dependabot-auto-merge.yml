@@ -1,4 +1,5 @@
-# GitHub Dependabot cannot push to master. This merges its PRs after checks.
+# GitHub Dependabot cannot push to master. This repo requires one review,
+# so the workflow approves the PR and squash-merges it after CI.
 name: Dependabot auto-merge
 
 on:
@@ -13,6 +14,11 @@ jobs:
     if: github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
+      - name: Approve pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr review --approve "$PR_URL"
       - name: Enable auto-merge
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

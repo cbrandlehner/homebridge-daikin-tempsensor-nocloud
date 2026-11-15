@@ -151,6 +151,8 @@ function Daikin(log, config) {
     this.log.debug('Config: Outsidemode is %s', config.outsidemode);
   }
 
+  this.lastOutsideTemperature = null;
+
   if (config.apiroute === undefined) {
     this.log.error('ERROR: your configuration is missing the parameter "apiroute"');
     this.apiroute = 'http://192.168.1.88';
@@ -315,7 +317,10 @@ Daikin.prototype = {
             options.skipQueue = true;
             this._queueGetRequest(path, callback, options);
           } else {
-            this.log.error('ERROR: Queued request to %s returned error %s', path, error);
+            if (error.status !== 403) {
+              this.log.error('ERROR: Queued request to %s returned error %s', path, error);
+            }
+
             callback(error);
           }
 
@@ -397,6 +402,19 @@ Daikin.prototype = {
           if (error.timeout) {/* timed out */}
           else if (error.code === 'ECONNRESET') {
             this.log.debug('_doSendGetRequest: eConnreset filtered');
+          } else if (error.status === 403) {
+            const now = Date.now();
+            if (!this._last403Warning || now - this._last403Warning > 3_600_000) {
+              this._last403Warning = now;
+              this.log.error(
+                'The Daikin adapter refused the request (403 Forbidden). %s See "HTTPS/Registered client support" in the README: '
+                + 'register the uuid once with /common/register_terminal and the KEY printed on the adapter sticker. '
+                + 'An adapter reset or power cut can clear the registration. (Repeats are suppressed for an hour.)',
+                this.uuid === '' ? 'No uuid is configured.' : 'The configured uuid is not registered on this adapter.',
+              );
+            } else {
+              this.log.debug('_doSendGetRequest: 403 for %s (suppressed)', resolvedPath);
+            }
           } else {
             this.log.error('_doSendGetRequest: ERROR: API request to %s returned error %s', resolvedPath, error);
           }
@@ -480,10 +498,17 @@ Daikin.prototype = {
 
       const rawTemperature = Number.parseFloat(responseValues[field]);
       if (!Number.isFinite(rawTemperature)) {
+        // Some outdoor units report otemp as '-' while idle.
+        if (field === 'otemp' && Number.isFinite(this.lastOutsideTemperature)) {
+          this.log.debug('otemp is %s; keeping last outside temperature %s', responseValues.otemp, this.lastOutsideTemperature);
+          return callback(null, this.lastOutsideTemperature);
+        }
+
         return callback(new Error(`Invalid temperature (${field}): ${responseValues[field]}`));
       }
 
       const adjustedTemperature = rawTemperature + this.temperatureOffset;
+      if (field === 'otemp') this.lastOutsideTemperature = adjustedTemperature;
       this.log.debug(
         'Temperature (raw): %s°, offset: %s°, adjusted: %s°',
         rawTemperature.toFixed(1),

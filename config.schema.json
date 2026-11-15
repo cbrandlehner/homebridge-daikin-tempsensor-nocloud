@@ -12,7 +12,7 @@
       },
       "outsidemode": {
         "title": "Do you want to see the OUTSIDE temperature? If not, the plugin will provide INSIDE temperature.",
-        "description": "Can be set to true or false",
+        "description": "Nothing is published until the first real outdoor reading. If the unit later reports otemp as '-', that reading is kept.",
         "type": "boolean"
       },
       "apiroute": {

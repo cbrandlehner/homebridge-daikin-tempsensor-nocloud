@@ -1,6 +1,6 @@
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 
-[![node](https://img.shields.io/badge/node-22%20%7C%2024-brightgreen)](https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/blob/master/package.json)
+[![node](https://img.shields.io/badge/node-22%20%7C%2024%20%7C%2026-brightgreen)](https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/blob/master/package.json)
 [![npm](https://img.shields.io/npm/dt/homebridge-daikin-tempsensor-nocloud.svg)](https://www.npmjs.com/package/homebridge-daikin-tempsensor-nocloud)
 [![npm](https://img.shields.io/npm/l/homebridge-daikin-tempsensor-nocloud.svg)](https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/blob/master/LICENSE)
 [![npm version](https://badge.fury.io/js/homebridge-daikin-tempsensor-nocloud.svg)](https://badge.fury.io/js/homebridge-daikin-tempsensor-nocloud)

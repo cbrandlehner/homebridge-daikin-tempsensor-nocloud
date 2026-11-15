@@ -7,6 +7,8 @@
 
 let Service;
 let Characteristic;
+// A connection reset is tried again this many times, then the caller hears about it.
+const ECONNRESET_ATTEMPTS = 3;
 const https = require('node:https');
 const http = require('node:http');
 const crypto = require('node:crypto');
@@ -289,7 +291,7 @@ Daikin.prototype = {
    *
    * @param {string} path Full request URL.
    * @param {(error: Error | null, body?: string) => void} callback Called with the response body or an error.
-   * @param {{ skipQueue?: boolean, skipCache?: boolean }} [options] Queue and cache behaviour overrides.
+   * @param {{ skipQueue?: boolean, skipCache?: boolean, _econnresetAttempt?: number }} [options] Queue and cache behaviour overrides.
    */
   sendGetRequest(path, callback, options) {
     this.log.debug('sendGetRequest: attempting request: path: %s', path);
@@ -300,7 +302,7 @@ Daikin.prototype = {
   /**
    * @param {string} path Full request URL.
    * @param {(error: Error | null, body?: string) => void} callback Called with the response body or an error.
-   * @param {{ skipQueue?: boolean, skipCache?: boolean }} options Queue and cache behaviour overrides.
+   * @param {{ skipQueue?: boolean, skipCache?: boolean, _econnresetAttempt?: number }} options Queue and cache behaviour overrides.
    */
   _queueGetRequest(path, callback, options) {
     const method = options.skipQueue ? 'prepend' : 'append';
@@ -313,17 +315,22 @@ Daikin.prototype = {
       this._doSendGetRequest(path, (error, response) => {
         if (error) {
           if (error.code === 'ECONNRESET') {
-            this.log.debug('_queueGetRequest: requeueing request after econnreset');
-            options.skipQueue = true;
-            this._queueGetRequest(path, callback, options);
-          } else {
-            if (error.status !== 403) {
-              this.log.error('ERROR: Queued request to %s returned error %s', path, error);
+            const attempt = (options._econnresetAttempt || 0) + 1;
+            if (attempt < ECONNRESET_ATTEMPTS) {
+              this.log.debug('_queueGetRequest: requeueing request after econnreset (%s/%s)', attempt, ECONNRESET_ATTEMPTS);
+              options._econnresetAttempt = attempt;
+              options.skipQueue = true;
+              this._queueGetRequest(path, callback, options);
+              done();
+              return;
             }
 
-            callback(error);
+            this.log.debug('_queueGetRequest: giving up after %s ECONNRESET responses for %s', attempt, path);
+          } else if (error.status !== 403) {
+            this.log.error('ERROR: Queued request to %s returned error %s', path, error);
           }
 
+          callback(error);
           done();
           return;
         }

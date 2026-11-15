@@ -17,7 +17,7 @@ const Cache = require('./cache.js');
 const Queue = require('./queue.js');
 const parseResponse = require('./parse-response.js');
 const {parseTemperatureDisplayUnits} = parseResponse;
-const {resolveControllerHost, replaceHostInUrl} = require('./host-resolve.js');
+const {resolveControllerHost, replaceHostInUrl, isIpAddress} = require('./host-resolve.js');
 
 // --- BEGIN: OpenSSL / Agent helpers (added) ---
 const SECURE_OPS
@@ -367,8 +367,13 @@ Daikin.prototype = {
           response: this.response,
           deadline: this.deadline,
         })
-        .set('User-Agent', 'superagent')
-        .set('Host', resolvedIP);
+        .set('User-Agent', 'superagent');
+
+      // Node 26 rejects a TLS servername that is an IP. Superagent copies the
+      // Host header into servername, and the URL already addresses this host.
+      if (!isIpAddress(resolvedIP)) {
+        request = request.set('Host', resolvedIP);
+      }
 
       if (this.uuid !== '') {
         request = request.set('X-Daikin-uuid', this.uuid);

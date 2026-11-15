@@ -7,10 +7,11 @@
 
 ![Node.js CI](https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/workflows/Node.js%20CI/badge.svg)
 ![CodeQL](https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/workflows/CodeQL/badge.svg)
+[![Dependency review](https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/actions/workflows/dependency-review.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud/badge)](https://scorecard.dev/viewer/?uri=github.com/cbrandlehner/homebridge-daikin-tempsensor-nocloud)
 # homebridge-daikin-tempsensor-nocloud
 
-Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/homebridge) by connecting to the optional [Daikin Wifi Controller](https://amzn.to/2MZDQjg) or by using the builtin wifi controller that comes with some models.
+Publishes the indoor or outdoor temperature of a Daikin air conditioner to [Homebridge](https://github.com/nfarina/homebridge). It connects to the optional [Daikin Wifi Controller](https://amzn.to/2MZDQjg) or to the built-in wifi controller on some models. It does not turn the unit on or off, and it does not change the mode or the target temperature. Use [homebridge-daikin-local](https://github.com/cbrandlehner/homebridge-daikin-local) for control.
 
 
 <img src="https://user-images.githubusercontent.com/2294359/80783655-abb6c200-8ba4-11ea-9b60-d5823e3b788f.jpeg" align="center" alt="controller" style="transform:rotate(90deg);" width="50%" height="50%">
@@ -21,7 +22,7 @@ Supports Daikin Air Conditioners on [HomeBridge](https://github.com/nfarina/home
 
 # Installation
 
-This plugin retrieves sensor and mode data from a [Daikin WIFI controller](https://amzn.to/2MZDQjg) in your local network and allows you to set operation modes and target temperatures. As it is a plugin for [HomeBridge](https://github.com/nfarina/homebridge) you will have access to this features using Apple Home.
+This plugin reads one temperature from the controller and shows it in Apple Home as a temperature sensor.
 
 The install may require you to run as an administrator (using a different login or sudo).
 It is recommended to configure your DHCP server to reserve an IP for the wifi controller.
@@ -35,13 +36,24 @@ This screenshot shows the configuration in [Homebridge Config UI X](https://gith
 
 Users are advised to use the graphical configuration. In case you configure the setings manually, please make sure to check the file config.schema.json first to understand the settings and possible values.
 
+# Indoor or outdoor temperature
+
+`outsidemode` chooses the reading:
+
+- On: outdoor temperature (`otemp` from `get_sensor_info`). Nothing is published until the first real reading. Some units report `-` while idle; that last reading is kept.
+- Off: indoor temperature (`htemp`).
+
+`temperatureOffset` is added to the selected reading. The default accessory name is "Outside Temperature".
+
 # Technical background information on the API being used
 
-The `apiroute` is used for two main calls: Get info such as current activity and sensor readings from the thermostat and set the target temperature and modes. The Aircon LAN adapter provides two directories for these settings and data:
+The `apiroute` is used to read sensor data. This plugin calls `get_sensor_info` for the temperature and `get_model_info` for the controller model. It does not call `set_control_info`.
 
-1. `/common` uses the GET method for control and system information about the Aircon (e.g software version, MAC address, Reboot System, Region)
+The Aircon LAN adapter provides two directories:
 
-2. `/aircon` uses the GET method to set Aircon related information (e.g Target Temperature, Modes like Heat and Cool, Temperature Sensor Readings, Timers)
+1. `/common` returns system information (for example software version, MAC address, and region).
+
+2. `/aircon` returns air-conditioner data. This plugin reads the temperature values from there. It does not write the target temperature or the mode.
 
 # Supported devices
 

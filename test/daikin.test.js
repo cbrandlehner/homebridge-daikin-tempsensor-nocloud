@@ -33,6 +33,27 @@ test('_readTemperature rejects API errors', async () => {
   );
 });
 
+test('outdoor temperature keeps the last reading when otemp is "-"', async () => {
+  const daikin = createDaikin({outsidemode: true, temperatureOffset: 0});
+  let body = 'ret=OK,htemp=22.0,otemp=4.0';
+  daikin.sendGetRequest = (_path, callback) => callback(null, body);
+
+  assert.equal(await readTemperature(daikin, 'otemp'), 4);
+
+  body = 'ret=OK,htemp=22.0,otemp=-';
+  assert.equal(await readTemperature(daikin, 'otemp'), 4);
+});
+
+test('outdoor temperature rejects "-" before any reading', async () => {
+  const daikin = createDaikin({outsidemode: true});
+  daikin.sendGetRequest = (_path, callback) => callback(null, 'ret=OK,otemp=-');
+
+  await assert.rejects(
+    () => readTemperature(daikin, 'otemp'),
+    /Invalid temperature \(otemp\): -/
+  );
+});
+
 test('_readTemperature rejects invalid temperature values', async () => {
   const daikin = createDaikin();
   daikin.sendGetRequest = (_path, callback) => {
